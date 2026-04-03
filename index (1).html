@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sudden Attack 3D Callout Study</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: rgba(13, 20, 39, 0.92);
+      --panel-2: rgba(17, 27, 48, 0.92);
+      --line: rgba(255,255,255,0.1);
+      --text: #eef4ff;
+      --muted: #9db1d1;
+      --accent: #69a9ff;
+      --red: #ff6b6b;
+      --blue: #59a7ff;
+      --gold: #ffd369;
+      --green: #69ff9f;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; font-family: Inter, Pretendard, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: radial-gradient(circle at top, #182544 0%, var(--bg) 46%, #04070f 100%); color: var(--text); overflow: hidden; }
+    #app { display: grid; grid-template-columns: 360px 1fr; height: 100vh; }
+    aside {
+      border-right: 1px solid var(--line);
+      background: linear-gradient(180deg, var(--panel) 0%, rgba(7, 12, 24, .96) 100%);
+      backdrop-filter: blur(12px);
+      overflow: auto;
+      padding: 22px 18px 24px;
+    }
+    .brand { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .brand h1 { margin: 0; font-size: 22px; line-height: 1.2; }
+    .brand p { margin: 8px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .pill { font-size: 11px; padding: 6px 9px; border-radius: 999px; border: 1px solid rgba(105,169,255,0.35); color: #d9e8ff; background: rgba(105,169,255,0.12); white-space: nowrap; }
+    .section { margin-top: 18px; padding: 14px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 18px; }
+    .section h2 { margin: 0 0 12px; font-size: 14px; color: #dfeaff; }
+    .map-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .map-btn {
+      appearance: none; border: 1px solid var(--line); background: rgba(255,255,255,0.03); color: var(--text); border-radius: 14px;
+      padding: 11px 10px; text-align: left; cursor: pointer; transition: .18s ease; font-size: 13px; line-height: 1.3;
+    }
+    .map-btn:hover { transform: translateY(-1px); border-color: rgba(105,169,255,.35); }
+    .map-btn.active { background: rgba(105,169,255,.14); border-color: rgba(105,169,255,.5); box-shadow: inset 0 0 0 1px rgba(105,169,255,.16); }
+    .controls, .quick-actions { display: grid; gap: 8px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    button, input {
+      border: 1px solid var(--line); background: rgba(255,255,255,.04); color: var(--text); border-radius: 12px; padding: 10px 12px;
+      font: inherit;
+    }
+    button { cursor: pointer; }
+    button:hover { border-color: rgba(105,169,255,.45); }
+    input::placeholder { color: #7e91b4; }
+    .legend { display: grid; gap: 8px; font-size: 12px; color: var(--muted); }
+    .legend span { display: flex; align-items: center; gap: 8px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .callout-list { display: grid; gap: 7px; max-height: 320px; overflow: auto; padding-right: 2px; }
+    .callout-item { border: 1px solid var(--line); border-radius: 12px; padding: 10px 11px; background: rgba(255,255,255,.03); }
+    .callout-item strong { display: block; font-size: 13px; }
+    .callout-item span { display: block; margin-top: 4px; font-size: 12px; color: var(--muted); line-height: 1.45; }
+    .meta { font-size: 12px; color: var(--muted); line-height: 1.6; }
+    .meta b { color: #e8f1ff; }
+    main { position: relative; }
+    #scene { position: absolute; inset: 0; }
+    .hud {
+      position: absolute; top: 18px; right: 18px; z-index: 10; display: grid; gap: 10px; width: min(420px, calc(100vw - 420px));
+    }
+    .hud-card {
+      background: rgba(7, 12, 24, .7); border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; backdrop-filter: blur(12px);
+      box-shadow: 0 10px 40px rgba(0,0,0,.25);
+    }
+    .hud-card h3 { margin: 0 0 6px; font-size: 16px; }
+    .hud-card p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.55; }
+    .hud-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .hud-badges span { font-size: 12px; padding: 7px 9px; border-radius: 999px; background: rgba(255,255,255,.05); border: 1px solid var(--line); }
+    .footer-note { margin-top: 14px; font-size: 11px; color: #8295b8; line-height: 1.55; }
+    .label-overlay {
+      position: absolute; pointer-events: none; transform: translate(-50%, -50%); padding: 6px 8px; white-space: nowrap;
+      background: rgba(7, 12, 24, .84); border: 1px solid rgba(255,255,255,.14); border-radius: 10px; font-size: 12px; color: white;
+      box-shadow: 0 10px 20px rgba(0,0,0,.22);
+    }
+    .label-overlay.focused { border-color: rgba(255,211,105,.6); box-shadow: 0 0 0 1px rgba(255,211,105,.22), 0 10px 20px rgba(0,0,0,.24); }
+    .hint { font-size: 12px; color: var(--muted); }
+    @media (max-width: 1100px) {
+      #app { grid-template-columns: 1fr; }
+      aside { position: absolute; inset: auto auto 0 0; width: 100%; max-height: 42vh; z-index: 20; border-right: none; border-top: 1px solid var(--line); }
+      .hud { width: calc(100vw - 32px); }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <aside>
+      <div class="brand">
+        <div>
+          <h1>서든어택 맵 지명 3D 스터디</h1>
+          <p>브리핑 연습용 3D 웹 뷰어입니다. 맵을 바꾸고, 지명을 검색하고, 라벨을 켜고 끄면서 위치를 공부할 수 있습니다.</p>
+        </div>
+        <div class="pill">GitHub Pages Ready</div>
+      </div>
+
+      <div class="section">
+        <h2>맵 선택</h2>
+        <div id="mapGrid" class="map-grid"></div>
+      </div>
+
+      <div class="section controls">
+        <h2>스터디 도구</h2>
+        <input id="searchInput" type="text" placeholder="지명 검색 (예: 체크방, 센7, 쌍문)" />
+        <div class="row">
+          <button id="toggleLabelsBtn">라벨 숨기기</button>
+          <button id="resetCameraBtn">카메라 리셋</button>
+        </div>
+        <div class="row">
+          <button id="topViewBtn">탑뷰</button>
+          <button id="angledViewBtn">브리핑뷰</button>
+        </div>
+        <div class="hint">마우스로 회전, 휠로 확대/축소, 우클릭 드래그로 이동</div>
+      </div>
+
+      <div class="section">
+        <h2>색상 범례</h2>
+        <div class="legend">
+          <span><i class="dot" style="background: var(--red)"></i> 레드 진영 시작/핵심 구간</span>
+          <span><i class="dot" style="background: var(--blue)"></i> 블루 진영 시작/핵심 구간</span>
+          <span><i class="dot" style="background: var(--gold)"></i> 센터/브리핑 핵심 구간</span>
+          <span><i class="dot" style="background: var(--green)"></i> 사이트/연결 동선</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>현재 맵 지명</h2>
+        <div id="calloutList" class="callout-list"></div>
+      </div>
+
+      <div class="section meta">
+        <b>참고</b><br>
+        이 파일은 정적 HTML 한 장으로 동작합니다. GitHub 저장소 루트에 <code>index.html</code>로 올리면 바로 배포할 수 있게 구성했습니다.<br><br>
+        일부 맵은 공개 자료에서 추출 가능한 지명 설명을 우선 반영했고, 지형은 브리핑 학습 목적에 맞게 단순화한 3D 블록 형태로 구성했습니다.
+      </div>
+    </aside>
+
+    <main>
+      <div id="scene"></div>
+      <div class="hud">
+        <div class="hud-card">
+          <h3 id="mapTitle">맵 이름</h3>
+          <p id="mapSummary">맵 설명</p>
+          <div id="mapBadges" class="hud-badges"></div>
+          <div class="footer-note">
+            출처 기반 지명 참고: BLUE KEY 티스토리의 올드타운, 드래곤로드, 크로스포트, 프로방스, 시티캣, 제5보급창고 글과 넥슨 서든 A to Z/커뮤니티의 듀오릭 및 데저트2 관련 자료를 반영했습니다.
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'https://unpkg.com/three@0.161.0/build/three.module.js';
+    import { OrbitControls } from 'https://unpkg.com/three@0.161.0/examples/jsm/controls/OrbitControls.js';
+
+    const maps = {
+      duoRick: {
+        name: '듀오릭',
+        summary: '듀오 전용 신규 맵 흐름을 기준으로 만든 학습용 3D 배치입니다. 좌우 양 사이트와 중앙 연결 구간 위주로 빠르게 브리핑 연습을 할 수 있게 구성했습니다.',
+        badges: ['듀오맵', 'A/B 양갈래', '중앙 연결'],
+        blocks: [
+          { x:-38, z:0, w:20, d:54, h:5, color:'#ff6b6b', label:'레드베이스', desc:'레드 시작 구역' },
+          { x:38, z:0, w:20, d:54, h:5, color:'#59a7ff', label:'블루베이스', desc:'블루 시작 구역' },
+          { x:0, z:0, w:22, d:24, h:8, color:'#ffd369', label:'센터', desc:'양 팀 시야가 먼저 만나는 핵심 구간' },
+          { x:-14, z:-24, w:22, d:12, h:6, color:'#69ff9f', label:'A입구', desc:'A 방향 진입로' },
+          { x:-14, z:24, w:22, d:12, h:6, color:'#69ff9f', label:'B입구', desc:'B 방향 진입로' },
+          { x:14, z:-24, w:22, d:12, h:6, color:'#69ff9f', label:'A수비', desc:'A 사이트 수비 라인' },
+          { x:14, z:24, w:22, d:12, h:6, color:'#69ff9f', label:'B수비', desc:'B 사이트 수비 라인' },
+          { x:0, z:-36, w:20, d:10, h:4, color:'#ffd369', label:'상단 연결', desc:'상부 회전 동선' },
+          { x:0, z:36, w:20, d:10, h:4, color:'#ffd369', label:'하단 연결', desc:'하부 회전 동선' }
+        ]
+      },
+      supply5: {
+        name: '제5보급창고',
+        summary: '제3보급창고 계열 감각을 유지하면서 동선이 뒤섞인 구조를 학습용으로 단순화했습니다. 장거리 라인, 박스 구간, 교차 구간 위주로 보도록 설계했습니다.',
+        badges: ['창고형', '긴 교전 라인', '박스 구간'],
+        blocks: [
+          { x:-38, z:0, w:18, d:52, h:5, color:'#ff6b6b', label:'레드베이스', desc:'레드 시작 지점' },
+          { x:38, z:0, w:18, d:52, h:5, color:'#59a7ff', label:'블루베이스', desc:'블루 시작 지점' },
+          { x:-14, z:0, w:20, d:18, h:10, color:'#ffd369', label:'센터박스', desc:'교전이 집중되는 중앙 박스 구간' },
+          { x:14, z:0, w:20, d:18, h:10, color:'#ffd369', label:'역센터', desc:'상대 역진입 체크 라인' },
+          { x:0, z:-26, w:46, d:12, h:6, color:'#69ff9f', label:'A라인', desc:'A 방향 횡이동 라인' },
+          { x:0, z:26, w:46, d:12, h:6, color:'#69ff9f', label:'B라인', desc:'B 방향 횡이동 라인' },
+          { x:0, z:0, w:12, d:46, h:4, color:'#ffd369', label:'중앙통로', desc:'양 라인을 잇는 핵심 통로' },
+          { x:-2, z:-38, w:16, d:8, h:4, color:'#69ff9f', label:'A끝', desc:'A 깊숙한 끝라인' },
+          { x:-2, z:38, w:16, d:8, h:4, color:'#69ff9f', label:'B끝', desc:'B 깊숙한 끝라인' }
+        ]
+      },
+      oldTown: {
+        name: '올드타운',
+        summary: '센터 707 박스와 양 날개, 언더 동선이 중요한 맵입니다. 자주 불리는 지명을 라벨과 목록으로 함께 볼 수 있습니다.',
+        badges: ['센터 교전', '언더 동선', '날개 운영'],
+        blocks: [
+          { x:-40, z:0, w:18, d:54, h:5, color:'#ff6b6b', label:'레베', desc:'레드베이스' },
+          { x:40, z:0, w:18, d:54, h:5, color:'#59a7ff', label:'블베', desc:'블루베이스' },
+          { x:0, z:0, w:22, d:18, h:10, color:'#ffd369', label:'센7', desc:'센터의 707 박스' },
+          { x:0, z:-18, w:18, d:10, h:6, color:'#ffd369', label:'센삼', desc:'센터 삼거리' },
+          { x:-18, z:0, w:12, d:18, h:6, color:'#ff6b6b', label:'레베7', desc:'레드베이스의 707 박스' },
+          { x:18, z:20, w:12, d:18, h:6, color:'#59a7ff', label:'B7', desc:'B 지역의 707 박스' },
+          { x:-26, z:-22, w:20, d:10, h:4, color:'#69ff9f', label:'레베언더', desc:'레드베이스에서 내려가는 길' },
+          { x:26, z:22, w:20, d:10, h:4, color:'#69ff9f', label:'블베언더', desc:'블루베이스에서 내려가는 길' },
+          { x:18, z:-22, w:14, d:10, h:6, color:'#69ff9f', label:'A농구', desc:'A 방향 농구대' },
+          { x:18, z:22, w:14, d:10, h:6, color:'#69ff9f', label:'B농구', desc:'B 방향 농구대' },
+          { x:0, z:-34, w:14, d:8, h:5, color:'#69ff9f', label:'A날개', desc:'벽에 붙어 메달릴 수 있는 공간' },
+          { x:0, z:34, w:14, d:8, h:5, color:'#69ff9f', label:'B날개', desc:'벽에 붙어 메달릴 수 있는 공간' },
+          { x:-4, z:24, w:8, d:8, h:8, color:'#ffd369', label:'벽부', desc:'벽 부스팅으로 올라갈 수 있는 자리' }
+        ]
+      },
+      crossPort: {
+        name: '크로스포트',
+        summary: '빠른 교전, 개구 활용, 리스폰 지역 인접 전투가 특징인 맵입니다. 학습용 블록은 리스폰-센터-사이트 흐름을 바로 읽을 수 있게 압축했습니다.',
+        badges: ['빠른 교전', '개구 활용', '양 사이트 회전'],
+        blocks: [
+          { x:-38, z:0, w:18, d:50, h:5, color:'#ff6b6b', label:'레드베이스', desc:'레드 시작 구역' },
+          { x:38, z:0, w:18, d:50, h:5, color:'#59a7ff', label:'블루베이스', desc:'블루 시작 구역' },
+          { x:0, z:0, w:18, d:16, h:11, color:'#ffd369', label:'센터', desc:'초반 교전 중심' },
+          { x:0, z:-24, w:34, d:12, h:5, color:'#69ff9f', label:'A통로', desc:'A쪽 주 진입 구간' },
+          { x:0, z:24, w:34, d:12, h:5, color:'#69ff9f', label:'B통로', desc:'B쪽 주 진입 구간' },
+          { x:-12, z:-8, w:8, d:16, h:7, color:'#ffd369', label:'개구', desc:'변수 창출용 개구멍 라인' },
+          { x:12, z:8, w:8, d:16, h:7, color:'#ffd369', label:'역개구', desc:'상대 개구 대응 시야' },
+          { x:20, z:-24, w:16, d:12, h:6, color:'#69ff9f', label:'A사이트', desc:'A 설치/수비 구간' },
+          { x:20, z:24, w:16, d:12, h:6, color:'#69ff9f', label:'B사이트', desc:'B 설치/수비 구간' }
+        ]
+      },
+      provence: {
+        name: '프로방스',
+        summary: '프방은 자리 이름이 특히 다양하게 쓰이는 맵입니다. 세이브존, 삼빡, 부모자리, 짤 자리 중심으로 빠르게 외우기 좋게 만들었습니다.',
+        badges: ['클전 단골맵', '짤 포인트 다수', '포지션 암기형'],
+        blocks: [
+          { x:-38, z:0, w:18, d:52, h:5, color:'#ff6b6b', label:'레드베이스', desc:'레드 시작 구역' },
+          { x:38, z:0, w:18, d:52, h:5, color:'#59a7ff', label:'블루베이스', desc:'블루 시작 구역' },
+          { x:0, z:0, w:20, d:18, h:10, color:'#ffd369', label:'중짤', desc:'중간에서 짜를 수 있는 자리' },
+          { x:0, z:-18, w:16, d:10, h:7, color:'#ffd369', label:'인짤', desc:'안쪽으로 더 들어온 짤 자리' },
+          { x:0, z:18, w:16, d:10, h:7, color:'#ffd369', label:'역짤', desc:'역으로 짜를 수 있는 자리' },
+          { x:20, z:20, w:14, d:14, h:7, color:'#69ff9f', label:'세이브존', desc:'세이브를 하기 좋은 자리' },
+          { x:18, z:-20, w:14, d:14, h:6, color:'#69ff9f', label:'삼빡', desc:'박스 3개 위치' },
+          { x:-16, z:-24, w:12, d:10, h:6, color:'#ff6b6b', label:'아빠자리', desc:'아빠를 찾게 되는 자리' },
+          { x:-16, z:24, w:12, d:10, h:6, color:'#ff6b6b', label:'엄마자리', desc:'엄마를 찾게 되는 자리' },
+          { x:30, z:-6, w:10, d:10, h:5, color:'#59a7ff', label:'좌빡', desc:'B방 기준 왼쪽 박스' },
+          { x:30, z:6, w:10, d:10, h:5, color:'#59a7ff', label:'우빡', desc:'B방 기준 오른쪽 박스' },
+          { x:-2, z:-36, w:10, d:6, h:8, color:'#ffd369', label:'F8', desc:'버그를 이용해 올라가던 포지션 명칭' }
+        ]
+      },
+      desert2: {
+        name: '데저트2',
+        summary: '넓은 시야와 A/B 롱·숏, 쌍문, 센터 운영이 핵심인 맵입니다. 폭 루트 설명에 자주 등장하는 위치들을 우선 배치했습니다.',
+        badges: ['넓은 시야', '롱/숏 운영', '쌍문 체크'],
+        blocks: [
+          { x:-40, z:0, w:18, d:56, h:5, color:'#ff6b6b', label:'레드베이스', desc:'레드 시작 지점' },
+          { x:40, z:0, w:18, d:56, h:5, color:'#59a7ff', label:'블루베이스', desc:'블루 시작 지점' },
+          { x:0, z:0, w:18, d:20, h:9, color:'#ffd369', label:'센터', desc:'맵 중심 장악 구간' },
+          { x:0, z:-28, w:48, d:10, h:5, color:'#69ff9f', label:'A숏', desc:'A쪽 짧은 진입 루트' },
+          { x:0, z:-40, w:52, d:8, h:4, color:'#69ff9f', label:'A롱', desc:'A쪽 긴 진입 루트' },
+          { x:0, z:28, w:48, d:10, h:5, color:'#69ff9f', label:'B숏', desc:'B쪽 짧은 진입 루트' },
+          { x:0, z:40, w:52, d:8, h:4, color:'#69ff9f', label:'B롱', desc:'B쪽 긴 진입 루트' },
+          { x:14, z:-12, w:12, d:8, h:7, color:'#ffd369', label:'쌍문', desc:'데저트2 대표 콜아웃' },
+          { x:22, z:0, w:10, d:12, h:6, color:'#69ff9f', label:'신전', desc:'커버와 폭 포인트가 연결되는 구역' },
+          { x:-18, z:-12, w:12, d:8, h:6, color:'#ff6b6b', label:'위폭 라인', desc:'위폭 공략에서 언급되는 상부 라인' }
+        ]
+      },
+      dragonRoad: {
+        name: '드래곤로드',
+        summary: '색 방, 계단, 철밑, 광장 계열 콜아웃이 많은 맵입니다. 팀 브리핑에 자주 쓰는 대표 지명을 바로 찾을 수 있게 배치했습니다.',
+        badges: ['색방 브리핑', '계단 콜아웃', '고저차'],
+        blocks: [
+          { x:-38, z:0, w:18, d:52, h:5, color:'#ff6b6b', label:'레베', desc:'레드베이스' },
+          { x:38, z:0, w:18, d:52, h:5, color:'#59a7ff', label:'블베', desc:'블루베이스' },
+          { x:-18, z:0, w:12, d:16, h:7, color:'#ff6b6b', label:'야시', desc:'야마카시 시작하는 곳' },
+          { x:-4, z:-22, w:12, d:12, h:7, color:'#ffd369', label:'빨방', desc:'빨간 벽지 방' },
+          { x:8, z:-22, w:12, d:12, h:7, color:'#ffd369', label:'노방', desc:'노란빛이 나는 방' },
+          { x:20, z:-22, w:12, d:12, h:7, color:'#ffd369', label:'보방', desc:'보라색빛이 나는 방' },
+          { x:0, z:0, w:18, d:18, h:10, color:'#ffd369', label:'광계', desc:'광장 계단' },
+          { x:-12, z:20, w:12, d:12, h:6, color:'#69ff9f', label:'로계', desc:'로비 계단' },
+          { x:0, z:22, w:12, d:12, h:6, color:'#69ff9f', label:'옥계', desc:'옥상 계단' },
+          { x:12, z:20, w:12, d:12, h:6, color:'#69ff9f', label:'락계', desc:'락커 계단' },
+          { x:24, z:0, w:14, d:10, h:5, color:'#69ff9f', label:'철밑', desc:'철다리 밑' },
+          { x:-24, z:0, w:14, d:10, h:5, color:'#ff6b6b', label:'ㄷ자', desc:'디귿자 구조물' },
+          { x:0, z:34, w:18, d:10, h:5, color:'#69ff9f', label:'쓰리깡', desc:'깡통 3개 위치' },
+          { x:-2, z:-36, w:14, d:8, h:6, color:'#ffd369', label:'오동', desc:'오동 선수가 자주 사용하던 자리' },
+          { x:28, z:28, w:10, d:8, h:4, color:'#69ff9f', label:'날개', desc:'벽에 붙어 있을 수 있는 공간' }
+        ]
+      },
+      cityCat: {
+        name: '시티캣',
+        summary: '복잡한 상가형 구조를 학습용으로 분해했습니다. 체크방, 엘베, 갈문, 창방, 개구처럼 자주 쓰는 지명을 한눈에 볼 수 있습니다.',
+        badges: ['복층 상가형', '개구 변수', '세부 콜아웃 다수'],
+        blocks: [
+          { x:-38, z:0, w:18, d:52, h:5, color:'#ff6b6b', label:'레베', desc:'레드베이스' },
+          { x:38, z:0, w:18, d:52, h:5, color:'#59a7ff', label:'블베', desc:'블루베이스' },
+          { x:-10, z:-22, w:16, d:12, h:8, color:'#ffd369', label:'체크방', desc:'체크 무늬 바닥이 있는 방' },
+          { x:10, z:-22, w:10, d:12, h:10, color:'#ffd369', label:'엘베', desc:'엘리베이터 구역' },
+          { x:24, z:-18, w:12, d:10, h:6, color:'#69ff9f', label:'갈문', desc:'갈색 문' },
+          { x:-6, z:0, w:20, d:16, h:9, color:'#ffd369', label:'센멀리', desc:'센터 멀리 끝자락' },
+          { x:14, z:0, w:14, d:12, h:9, color:'#ffd369', label:'센날개', desc:'센터 좌우에 올라갈 수 있는 공간' },
+          { x:-8, z:22, w:16, d:12, h:7, color:'#69ff9f', label:'창방', desc:'창문이 있는 방' },
+          { x:12, z:22, w:10, d:12, h:6, color:'#69ff9f', label:'개구', desc:'개구멍 연결 포인트' },
+          { x:26, z:22, w:12, d:12, h:5, color:'#69ff9f', label:'악어자리', desc:'기다리며 각을 보는 자리' },
+          { x:30, z:0, w:10, d:10, h:4, color:'#59a7ff', label:'블베뒷길', desc:'블루베이스 방향 뒷길' },
+          { x:-26, z:0, w:10, d:10, h:4, color:'#ff6b6b', label:'적베', desc:'상대 베이스를 지칭하는 콜아웃' }
+        ]
+      }
+    };
+
+    const sceneEl = document.getElementById('scene');
+    const mapGrid = document.getElementById('mapGrid');
+    const calloutList = document.getElementById('calloutList');
+    const mapTitle = document.getElementById('mapTitle');
+    const mapSummary = document.getElementById('mapSummary');
+    const mapBadges = document.getElementById('mapBadges');
+    const searchInput = document.getElementById('searchInput');
+    const toggleLabelsBtn = document.getElementById('toggleLabelsBtn');
+    const resetCameraBtn = document.getElementById('resetCameraBtn');
+    const topViewBtn = document.getElementById('topViewBtn');
+    const angledViewBtn = document.getElementById('angledViewBtn');
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(sceneEl.clientWidth, sceneEl.clientHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.shadowMap.enabled = true;
+    sceneEl.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0x0b1020, 90, 190);
+
+    const camera = new THREE.PerspectiveCamera(52, sceneEl.clientWidth / sceneEl.clientHeight, 0.1, 500);
+    camera.position.set(70, 60, 70);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(0, 6, 0);
+    controls.maxPolarAngle = Math.PI * 0.49;
+    controls.minDistance = 30;
+    controls.maxDistance = 180;
+
+    const ambient = new THREE.AmbientLight(0xffffff, 1.15);
+    scene.add(ambient);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.6);
+    dirLight.position.set(40, 70, 25);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    dirLight.shadow.camera.near = 0.5;
+    dirLight.shadow.camera.far = 200;
+    dirLight.shadow.camera.left = -80;
+    dirLight.shadow.camera.right = 80;
+    dirLight.shadow.camera.top = 80;
+    dirLight.shadow.camera.bottom = -80;
+    scene.add(dirLight);
+
+    const hemi = new THREE.HemisphereLight(0x8bb8ff, 0x0a0c13, 1.15);
+    scene.add(hemi);
+
+    const groundCanvas = document.createElement('canvas');
+    groundCanvas.width = 1024;
+    groundCanvas.height = 1024;
+    const gctx = groundCanvas.getContext('2d');
+    gctx.fillStyle = '#0f1630';
+    gctx.fillRect(0, 0, 1024, 1024);
+    gctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    gctx.lineWidth = 2;
+    for (let i = 0; i <= 1024; i += 64) {
+      gctx.beginPath(); gctx.moveTo(i, 0); gctx.lineTo(i, 1024); gctx.stroke();
+      gctx.beginPath(); gctx.moveTo(0, i); gctx.lineTo(1024, i); gctx.stroke();
+    }
+    gctx.strokeStyle = 'rgba(105,169,255,0.15)';
+    gctx.lineWidth = 4;
+    gctx.strokeRect(10, 10, 1004, 1004);
+    const groundTexture = new THREE.CanvasTexture(groundCanvas);
+    groundTexture.wrapS = groundTexture.wrapT = THREE.RepeatWrapping;
+    groundTexture.repeat.set(3, 3);
+
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(180, 180),
+      new THREE.MeshStandardMaterial({ map: groundTexture, roughness: 0.92, metalness: 0.05 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    const axisHelper = new THREE.GridHelper(180, 18, 0x355488, 0x22314d);
+    axisHelper.position.y = 0.05;
+    axisHelper.material.opacity = 0.25;
+    axisHelper.material.transparent = true;
+    scene.add(axisHelper);
+
+    const mapGroup = new THREE.Group();
+    scene.add(mapGroup);
+
+    const overlays = [];
+    let currentKey = 'oldTown';
+    let labelsVisible = true;
+    let blockMeshes = [];
+
+    function createTextSprite(text, color = '#ffffff') {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'rgba(7,12,24,0.86)';
+      roundRect(ctx, 16, 18, 480, 92, 20, true, false);
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.lineWidth = 2;
+      roundRect(ctx, 16, 18, 480, 92, 20, false, true);
+      ctx.fillStyle = color;
+      ctx.font = '700 32px Pretendard, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, 256, 64);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+      const sprite = new THREE.Sprite(material);
+      sprite.scale.set(18, 4.5, 1);
+      return sprite;
+    }
+
+    function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      if (fill) ctx.fill();
+      if (stroke) ctx.stroke();
+    }
+
+    function clearMap() {
+      overlays.forEach(el => el.remove());
+      overlays.length = 0;
+      blockMeshes.forEach(mesh => {
+        mapGroup.remove(mesh.mesh);
+        if (mesh.sprite) mapGroup.remove(mesh.sprite);
+      });
+      blockMeshes = [];
+    }
+
+    function buildMap(key) {
+      clearMap();
+      currentKey = key;
+      const map = maps[key];
+      mapTitle.textContent = map.name;
+      mapSummary.textContent = map.summary;
+      mapBadges.innerHTML = map.badges.map(v => `<span>${v}</span>`).join('');
+
+      map.blocks.forEach((block, i) => {
+        const geometry = new THREE.BoxGeometry(block.w, block.h, block.d);
+        const material = new THREE.MeshStandardMaterial({
+          color: block.color,
+          roughness: 0.45,
+          metalness: 0.08,
+          transparent: true,
+          opacity: 0.96,
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(block.x, block.h / 2, block.z);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        mesh.userData = block;
+
+        const edge = new THREE.LineSegments(
+          new THREE.EdgesGeometry(geometry),
+          new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.22 })
+        );
+        mesh.add(edge);
+        mapGroup.add(mesh);
+
+        const sprite = createTextSprite(block.label);
+        sprite.position.set(block.x, block.h + 3.4, block.z);
+        mapGroup.add(sprite);
+
+        const overlay = document.createElement('div');
+        overlay.className = 'label-overlay';
+        overlay.textContent = block.label;
+        sceneEl.appendChild(overlay);
+        overlays.push(overlay);
+
+        blockMeshes.push({ mesh, sprite, overlay, data: block });
+      });
+
+      calloutList.innerHTML = map.blocks.map(block => `
+        <div class="callout-item" data-name="${block.label.toLowerCase()}">
+          <strong>${block.label}</strong>
+          <span>${block.desc}</span>
+        </div>
+      `).join('');
+
+      document.querySelectorAll('.map-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.key === key));
+      applySearch(searchInput.value.trim().toLowerCase());
+    }
+
+    function updateOverlays() {
+      const width = sceneEl.clientWidth;
+      const height = sceneEl.clientHeight;
+      blockMeshes.forEach(({ mesh, overlay, data, sprite }) => {
+        const pos = mesh.position.clone();
+        pos.y += data.h / 2 + 4;
+        pos.project(camera);
+        const x = (pos.x * 0.5 + 0.5) * width;
+        const y = (pos.y * -0.5 + 0.5) * height;
+        const visible = pos.z < 1 && labelsVisible;
+        overlay.style.display = visible ? 'block' : 'none';
+        overlay.style.left = `${x}px`;
+        overlay.style.top = `${y}px`;
+        sprite.visible = false; // use HTML overlays for readability
+      });
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      updateOverlays();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    function resize() {
+      const w = sceneEl.clientWidth;
+      const h = sceneEl.clientHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    }
+    window.addEventListener('resize', resize);
+
+    Object.entries(maps).forEach(([key, map]) => {
+      const btn = document.createElement('button');
+      btn.className = 'map-btn';
+      btn.dataset.key = key;
+      btn.innerHTML = `<strong>${map.name}</strong><br><span style="font-size:11px;color:#8fa6ca;">${map.badges[0]}</span>`;
+      btn.addEventListener('click', () => buildMap(key));
+      mapGrid.appendChild(btn);
+    });
+
+    function applySearch(keyword) {
+      const items = document.querySelectorAll('.callout-item');
+      blockMeshes.forEach(({ data, overlay, mesh }) => {
+        const hit = !keyword || data.label.toLowerCase().includes(keyword) || data.desc.toLowerCase().includes(keyword);
+        mesh.material.emissive = new THREE.Color(hit && keyword ? '#332200' : '#000000');
+        mesh.material.emissiveIntensity = hit && keyword ? 0.55 : 0;
+        overlay.classList.toggle('focused', hit && !!keyword);
+        overlay.style.opacity = hit ? '1' : '0.18';
+      });
+      items.forEach(item => {
+        const show = !keyword || item.dataset.name.includes(keyword) || item.innerText.toLowerCase().includes(keyword);
+        item.style.display = show ? 'block' : 'none';
+      });
+    }
+
+    searchInput.addEventListener('input', e => applySearch(e.target.value.trim().toLowerCase()));
+
+    toggleLabelsBtn.addEventListener('click', () => {
+      labelsVisible = !labelsVisible;
+      toggleLabelsBtn.textContent = labelsVisible ? '라벨 숨기기' : '라벨 보이기';
+    });
+
+    function setAngledView() {
+      camera.position.set(70, 62, 70);
+      controls.target.set(0, 8, 0);
+      controls.update();
+    }
+
+    function setTopView() {
+      camera.position.set(0, 116, 0.1);
+      controls.target.set(0, 0, 0);
+      controls.update();
+    }
+
+    resetCameraBtn.addEventListener('click', setAngledView);
+    angledViewBtn.addEventListener('click', setAngledView);
+    topViewBtn.addEventListener('click', setTopView);
+
+    buildMap(currentKey);
+  </script>
+</body>
+</html>
