@@ -6,952 +6,781 @@
 <title>서든어택 맵 지명 3D 뷰어</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
-
-  :root {
-    --bg: #0a0b0e;
-    --surface: #111318;
-    --surface2: #1a1d25;
-    --border: #252935;
-    --accent: #e8b84b;
-    --accent2: #ff4444;
-    --blue-team: #3a8fd4;
-    --red-team: #d43a3a;
-    --text: #e0e4f0;
-    --text-muted: #7a8099;
-    --label-bg: rgba(10,11,14,0.88);
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Noto Sans KR', sans-serif;
-    height: 100vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-
-  /* ===== HEADER ===== */
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 20px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    z-index: 100;
-    flex-shrink: 0;
-  }
-
-  .logo {
-    font-family: 'Black Han Sans', sans-serif;
-    font-size: 1.3rem;
-    color: var(--accent);
-    letter-spacing: 1px;
-  }
-  .logo span { color: var(--text); }
-
-  .subtitle { font-size: 0.7rem; color: var(--text-muted); margin-top: 1px; }
-
-  .controls-hint {
-    font-size: 0.72rem;
-    color: var(--text-muted);
-    text-align: right;
-    line-height: 1.6;
-  }
-
-  /* ===== LAYOUT ===== */
-  .main {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-  }
-
-  /* ===== MAP LIST SIDEBAR ===== */
-  .sidebar {
-    width: 180px;
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    overflow-y: auto;
-    flex-shrink: 0;
-    padding: 8px 0;
-  }
-
-  .sidebar-title {
-    font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: var(--text-muted);
-    padding: 6px 14px 8px;
-    text-transform: uppercase;
-  }
-
-  .map-btn {
-    width: 100%;
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 10px 14px;
-    text-align: left;
-    color: var(--text-muted);
-    font-family: 'Noto Sans KR', sans-serif;
-    font-size: 0.82rem;
-    transition: all 0.15s;
-    border-left: 3px solid transparent;
-    position: relative;
-  }
-  .map-btn:hover { background: var(--surface2); color: var(--text); }
-  .map-btn.active {
-    background: var(--surface2);
-    color: var(--accent);
-    border-left-color: var(--accent);
-    font-weight: 700;
-  }
-
-  .map-btn .map-tag {
-    display: block;
-    font-size: 0.6rem;
-    color: var(--text-muted);
-    margin-top: 2px;
-    font-weight: 300;
-  }
-  .map-btn.active .map-tag { color: var(--accent); opacity: 0.7; }
-
-  /* ===== CANVAS AREA ===== */
-  .canvas-wrap {
-    flex: 1;
-    position: relative;
-    overflow: hidden;
-  }
-
-  #three-canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
-  }
-
-  /* ===== INFO PANEL ===== */
-  .info-panel {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    background: var(--label-bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 14px;
-    min-width: 160px;
-    pointer-events: none;
-    backdrop-filter: blur(8px);
-  }
-  .info-panel h2 {
-    font-family: 'Black Han Sans', sans-serif;
-    font-size: 1.1rem;
-    color: var(--accent);
-    margin-bottom: 3px;
-  }
-  .info-panel p {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    line-height: 1.5;
-  }
-
-  /* ===== LEGEND ===== */
-  .legend {
-    position: absolute;
-    bottom: 12px;
-    right: 12px;
-    background: var(--label-bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 14px;
-    pointer-events: none;
-    backdrop-filter: blur(8px);
-  }
-  .legend-title {
-    font-size: 0.62rem;
-    letter-spacing: 1.5px;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    margin-bottom: 6px;
-  }
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    margin-bottom: 4px;
-    font-size: 0.72rem;
-    color: var(--text);
-  }
-  .legend-dot {
-    width: 10px; height: 10px;
-    border-radius: 2px;
-    flex-shrink: 0;
-  }
-
-  /* ===== CONTROLS HELP ===== */
-  .help-bar {
-    position: absolute;
-    bottom: 12px;
-    left: 12px;
-    background: var(--label-bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 0.68rem;
-    color: var(--text-muted);
-    line-height: 1.7;
-    pointer-events: none;
-    backdrop-filter: blur(8px);
-  }
-  .help-bar kbd {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 0 4px;
-    font-size: 0.66rem;
-    color: var(--text);
-    font-family: monospace;
-  }
-
-  /* ===== TEAM TOGGLE ===== */
-  .team-toggle {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    display: flex;
-    gap: 6px;
-  }
-  .team-btn {
-    padding: 5px 12px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    background: var(--label-bg);
-    color: var(--text-muted);
-    font-size: 0.72rem;
-    cursor: pointer;
-    font-family: 'Noto Sans KR', sans-serif;
-    backdrop-filter: blur(8px);
-    transition: all 0.15s;
-  }
-  .team-btn:hover { color: var(--text); }
-  .team-btn.active-blue { background: rgba(58,143,212,0.25); border-color: var(--blue-team); color: var(--blue-team); font-weight: 700; }
-  .team-btn.active-red { background: rgba(212,58,58,0.25); border-color: var(--red-team); color: var(--red-team); font-weight: 700; }
-
-  /* ===== LOADING ===== */
-  #loading {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--bg);
-    z-index: 50;
-    transition: opacity 0.4s;
-  }
-  #loading.hidden { opacity: 0; pointer-events: none; }
-  .spinner {
-    width: 36px; height: 36px;
-    border: 3px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* Scrollbar */
-  .sidebar::-webkit-scrollbar { width: 4px; }
-  .sidebar::-webkit-scrollbar-track { background: transparent; }
-  .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  :root{--bg:#0a0b0e;--surface:#111318;--surface2:#1a1d25;--border:#252935;--accent:#e8b84b;--blue:#3a8fd4;--red:#d43a3a;--text:#e0e4f0;--muted:#7a8099;--lbg:rgba(8,9,12,0.88);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+  header{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);z-index:100;flex-shrink:0;}
+  .logo{font-family:'Black Han Sans',sans-serif;font-size:1.3rem;color:var(--accent);letter-spacing:1px;}
+  .logo span{color:var(--text);}
+  .sub{font-size:.7rem;color:var(--muted);margin-top:1px;}
+  .hint{font-size:.7rem;color:var(--muted);text-align:right;line-height:1.7;}
+  .main{display:flex;flex:1;overflow:hidden;}
+  .sidebar{width:170px;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;flex-shrink:0;padding:8px 0;}
+  .stitle{font-size:.6rem;font-weight:700;letter-spacing:2px;color:var(--muted);padding:6px 14px 8px;text-transform:uppercase;}
+  .mb{width:100%;background:none;border:none;cursor:pointer;padding:9px 14px;text-align:left;color:var(--muted);font-family:'Noto Sans KR',sans-serif;font-size:.82rem;transition:all .15s;border-left:3px solid transparent;}
+  .mb:hover{background:var(--surface2);color:var(--text);}
+  .mb.on{background:var(--surface2);color:var(--accent);border-left-color:var(--accent);font-weight:700;}
+  .mb .tag{display:block;font-size:.6rem;color:var(--muted);margin-top:1px;font-weight:300;}
+  .mb.on .tag{color:var(--accent);opacity:.7;}
+  .cw{flex:1;position:relative;overflow:hidden;}
+  #cv{display:block;width:100%;height:100%;}
+  .ip{position:absolute;top:12px;left:12px;background:var(--lbg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-width:155px;pointer-events:none;backdrop-filter:blur(8px);}
+  .ip h2{font-family:'Black Han Sans',sans-serif;font-size:1.1rem;color:var(--accent);margin-bottom:3px;}
+  .ip p{font-size:.7rem;color:var(--muted);line-height:1.5;white-space:pre-line;}
+  .leg{position:absolute;bottom:12px;right:12px;background:var(--lbg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;pointer-events:none;backdrop-filter:blur(8px);}
+  .lt{font-size:.6rem;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:6px;}
+  .li{display:flex;align-items:center;gap:7px;margin-bottom:4px;font-size:.7rem;color:var(--text);}
+  .ld{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+  .hb{position:absolute;bottom:12px;left:12px;background:var(--lbg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:.67rem;color:var(--muted);line-height:1.8;pointer-events:none;backdrop-filter:blur(8px);}
+  .hb kbd{background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:0 4px;font-size:.65rem;color:var(--text);font-family:monospace;}
+  .tt{position:absolute;top:12px;right:12px;display:flex;gap:6px;}
+  .tb{padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--lbg);color:var(--muted);font-size:.72rem;cursor:pointer;font-family:'Noto Sans KR',sans-serif;backdrop-filter:blur(8px);transition:all .15s;}
+  .tb:hover{color:var(--text);}
+  .tb.ab{background:rgba(58,143,212,.22);border-color:var(--blue);color:var(--blue);font-weight:700;}
+  .tb.ar{background:rgba(212,58,58,.22);border-color:var(--red);color:var(--red);font-weight:700;}
+  #ld{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:50;transition:opacity .4s;}
+  #ld.h{opacity:0;pointer-events:none;}
+  .sp{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .sidebar::-webkit-scrollbar{width:4px;}
+  .sidebar::-webkit-scrollbar-track{background:transparent;}
+  .sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
 </style>
 </head>
 <body>
-
 <header>
-  <div>
-    <div class="logo">SUDDEN ATTACK <span>MAP</span></div>
-    <div class="subtitle">맵 지명 3D 뷰어 · 브리핑 학습용</div>
-  </div>
-  <div class="controls-hint">
-    마우스 드래그: 회전 · 휠: 줌 · 우클릭 드래그: 이동<br>
-    레이블 클릭 시 구역 하이라이트
-  </div>
+  <div><div class="logo">SUDDEN ATTACK <span>MAP</span></div><div class="sub">맵 지명 3D 뷰어 · 브리핑 학습용</div></div>
+  <div class="hint">드래그: 회전 &nbsp;|&nbsp; 휠: 줌 &nbsp;|&nbsp; 우클릭: 이동 &nbsp;|&nbsp; R: 뷰 리셋</div>
 </header>
-
 <div class="main">
-  <!-- Sidebar -->
   <aside class="sidebar">
-    <div class="sidebar-title">맵 선택</div>
-    <button class="map-btn active" data-map="duoric">
-      듀오릭
-      <span class="map-tag">Duo-Ric · 폭파</span>
-    </button>
-    <button class="map-btn" data-map="supply5">
-      제5보급창고
-      <span class="map-tag">Supply-5 · 폭파</span>
-    </button>
-    <button class="map-btn" data-map="oldtown">
-      올드타운
-      <span class="map-tag">Old Town · 폭파</span>
-    </button>
-    <button class="map-btn" data-map="crossport">
-      크로스포트
-      <span class="map-tag">Crossport · 폭파</span>
-    </button>
-    <button class="map-btn" data-map="provence">
-      프로방스
-      <span class="map-tag">Provence · 폭파</span>
-    </button>
-    <button class="map-btn" data-map="desert2">
-      데저트2
-      <span class="map-tag">Desert 2 · 폭파</span>
-    </button>
-    <button class="map-btn" data-map="dragonroad">
-      드래곤로드
-      <span class="map-tag">Dragon Road · 폭파</span>
-    </button>
-    <button class="map-btn" data-map="citycat">
-      시티캣
-      <span class="map-tag">City Cat · 폭파</span>
-    </button>
+    <div class="stitle">맵 선택</div>
+    <button class="mb on"  data-map="dragonroad">드래곤로드<span class="tag">Dragon Road · 폭파</span></button>
+    <button class="mb" data-map="citycat">시티캣<span class="tag">City Cat · 폭파</span></button>
+    <button class="mb" data-map="oldtown">올드타운<span class="tag">Old Town · 폭파</span></button>
+    <button class="mb" data-map="italy">이탈리아<span class="tag">Italy · 인질구출</span></button>
+    <button class="mb" data-map="supply5">제5보급창고<span class="tag">Supply-5 · 폭파</span></button>
+    <button class="mb" data-map="subway">지하철<span class="tag">Subway · 폭파</span></button>
+    <button class="mb" data-map="crossport">크로스포트<span class="tag">Crossport · 폭파</span></button>
+    <button class="mb" data-map="palace">팰리스<span class="tag">Palace · 폭파</span></button>
+    <button class="mb" data-map="provence">프로방스<span class="tag">Provence · 폭파</span></button>
+    <button class="mb" data-map="whitesquall">화이트스콜<span class="tag">White Squall · 폭파</span></button>
   </aside>
-
-  <!-- Canvas -->
-  <div class="canvas-wrap">
-    <div id="loading"><div class="spinner"></div></div>
-
-    <canvas id="three-canvas"></canvas>
-
-    <div class="info-panel" id="info-panel">
-      <h2 id="map-title">듀오릭</h2>
-      <p id="map-desc">듀오 맵의 2폭 버전<br>랭크전 5vs5 핵심 맵</p>
+  <div class="cw">
+    <div id="ld"><div class="sp"></div></div>
+    <canvas id="cv"></canvas>
+    <div class="ip"><h2 id="mt">드래곤로드</h2><p id="md"></p></div>
+    <div class="tt">
+      <button class="tb ab" id="bb" onclick="setT('blue')">🔵 블루</button>
+      <button class="tb"    id="br" onclick="setT('red')">🔴 레드</button>
+      <button class="tb"    id="ba" onclick="setT('all')" style="color:var(--accent)">전체</button>
     </div>
-
-    <div class="team-toggle">
-      <button class="team-btn active-blue" id="btn-blue" onclick="setTeam('blue')">🔵 블루</button>
-      <button class="team-btn" id="btn-red" onclick="setTeam('red')">🔴 레드</button>
-      <button class="team-btn" id="btn-both" onclick="setTeam('both')" style="color:var(--accent)">전체</button>
+    <div class="leg">
+      <div class="lt">범례</div>
+      <div class="li"><div class="ld" style="background:#3a8fd4"></div>블루팀 구역</div>
+      <div class="li"><div class="ld" style="background:#d43a3a"></div>레드팀 구역</div>
+      <div class="li"><div class="ld" style="background:#e8b84b"></div>폭탄 설치 지점</div>
+      <div class="li"><div class="ld" style="background:#7755cc"></div>미드 / 센터</div>
+      <div class="li"><div class="ld" style="background:#3a7a55"></div>공용 통로</div>
     </div>
-
-    <div class="legend">
-      <div class="legend-title">범례</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#3a8fd4"></div>A 지역 (블루 스폰측)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#d43a3a"></div>B 지역 (레드 스폰측)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#e8b84b"></div>폭탄 설치 지점</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#8855cc"></div>미드 / 센터</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#4caf89"></div>경로 / 통로</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#888"></div>벽 / 구조물</div>
-    </div>
-
-    <div class="help-bar">
-      <kbd>드래그</kbd> 회전 &nbsp;
-      <kbd>휠</kbd> 줌 &nbsp;
-      <kbd>우클릭</kbd> 이동 &nbsp;
-      <kbd>R</kbd> 뷰 리셋
-    </div>
+    <div class="hb"><kbd>드래그</kbd> 회전 &nbsp;<kbd>휠</kbd> 줌 &nbsp;<kbd>우클릭</kbd> 이동 &nbsp;<kbd>R</kbd> 리셋</div>
   </div>
 </div>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-// ============================================================
-//  MAP DATA — 각 맵의 3D 구성 정보
-// ============================================================
-const MAPS = {
+// zone 단축 생성자
+const Z=(x,z,w,d,lb,tm,bs=false)=>({type:'zone',x,z,w,d,label:lb,team:tm,bombsite:bs});
+const W=(x,z,w,d,h=2.8)=>({type:'wall',x,z,w,d,h});
+const F=(x,z,w,d)=>({type:'floor',x,z,w,d});
 
-  duoric: {
-    title: '듀오릭',
-    desc: '듀오 맵의 2폭 확장판\n랭크전 5vs5 핵심 맵 · 2024.12 추가',
-    theme: { floor: 0x2a2d3a, wall: 0x3d4255, sky: 0x1a1e2e },
-    zones: [
-      // floors
-      { type:'floor', x:0,y:0,z:0, w:28,d:14, color:0x2a2d3a },
-      // Blue spawn
-      { type:'zone', x:-11,y:0,z:-4, w:5,d:5, color:0x1a3a5c, label:'블루 스폰', team:'blue', bombsite:false },
-      // Red spawn
-      { type:'zone', x:11,y:0,z:4, w:5,d:5, color:0x3a1a1a, label:'레드 스폰', team:'red', bombsite:false },
-      // A site
-      { type:'zone', x:-8,y:0,z:4, w:5,d:5, color:0x1a4080, label:'A 사이트', team:'blue', bombsite:true },
-      // B site
-      { type:'zone', x:8,y:0,z:-4, w:5,d:5, color:0x802020, label:'B 사이트', team:'red', bombsite:true },
-      // Mid
-      { type:'zone', x:0,y:0,z:0, w:5,d:5, color:0x3a2a5c, label:'미드 센터', team:'mid', bombsite:false },
-      // A long
-      { type:'zone', x:-4,y:0,z:4, w:4,d:3, color:0x1a3060, label:'A 롱', team:'blue', bombsite:false },
-      // B long
-      { type:'zone', x:4,y:0,z:-4, w:4,d:3, color:0x5a1a1a, label:'B 롱', team:'red', bombsite:false },
-      // A short
-      { type:'zone', x:-5,y:0,z:0, w:3,d:3, color:0x203870, label:'A 숏', team:'blue', bombsite:false },
-      // B short
-      { type:'zone', x:5,y:0,z:0, w:3,d:3, color:0x6a1a1a, label:'B 숏', team:'red', bombsite:false },
-      // Connector
-      { type:'zone', x:0,y:0,z:4, w:3,d:3, color:0x2a4a3a, label:'커넥터', team:'mid', bombsite:false },
-      { type:'zone', x:0,y:0,z:-4, w:3,d:3, color:0x2a4a3a, label:'커넥터', team:'mid', bombsite:false },
-      // Walls
-      { type:'wall', x:-13,y:0.5,z:0, w:1,h:3,d:14 },
-      { type:'wall', x:13,y:0.5,z:0, w:1,h:3,d:14 },
-      { type:'wall', x:0,y:0.5,z:-7, w:28,h:3,d:1 },
-      { type:'wall', x:0,y:0.5,z:7, w:28,h:3,d:1 },
-      // center divider
-      { type:'wall', x:-2,y:0.5,z:0, w:0.8,h:2,d:4 },
-      { type:'wall', x:2,y:0.5,z:0, w:0.8,h:2,d:4 },
-    ]
-  },
-
-  supply5: {
-    title: '제5보급창고',
-    desc: '3보급 B지역 반대편 배치 변형\n5:5 랭크전 포함 맵 · 2012년 추가',
-    theme: { floor: 0x252830, wall: 0x33363f, sky: 0x191c25 },
-    zones: [
-      { type:'floor', x:0,y:0,z:0, w:30,d:16, color:0x252830 },
-      // Blue spawn
-      { type:'zone', x:-12,y:0,z:0, w:5,d:5, color:0x1a3a5c, label:'블루 스폰', team:'blue', bombsite:false },
-      // Red spawn
-      { type:'zone', x:12,y:0,z:0, w:5,d:5, color:0x3a1a1a, label:'레드 스폰', team:'red', bombsite:false },
-      // A site
-      { type:'zone', x:-5,y:0,z:-5, w:5,d:5, color:0x1a4080, label:'A 사이트', team:'blue', bombsite:true },
-      // B site
-      { type:'zone', x:5,y:0,z:5, w:5,d:5, color:0x802020, label:'B 사이트', team:'red', bombsite:true },
-      // Mid
-      { type:'zone', x:0,y:0,z:0, w:4,d:4, color:0x3a2a5c, label:'미드', team:'mid', bombsite:false },
-      // A 삼거리
-      { type:'zone', x:-8,y:0,z:-3, w:3,d:3, color:0x1a3060, label:'A 삼컨', team:'blue', bombsite:false },
-      // B 삼거리
-      { type:'zone', x:8,y:0,z:3, w:3,d:3, color:0x5a1a1a, label:'B 삼컨', team:'red', bombsite:false },
-      // A 중컨
-      { type:'zone', x:-4,y:0,z:0, w:3,d:3, color:0x203870, label:'A 중컨', team:'blue', bombsite:false },
-      // B 중컨
-      { type:'zone', x:4,y:0,z:0, w:3,d:3, color:0x6a1a1a, label:'B 중컨', team:'red', bombsite:false },
-      // A short
-      { type:'zone', x:-8,y:0,z:4, w:3,d:3, color:0x2a4060, label:'A 숏', team:'blue', bombsite:false },
-      // B short
-      { type:'zone', x:8,y:0,z:-4, w:3,d:3, color:0x7a2020, label:'B 숏', team:'red', bombsite:false },
-      // Walls
-      { type:'wall', x:-14,y:0.5,z:0, w:1,h:3,d:16 },
-      { type:'wall', x:14,y:0.5,z:0, w:1,h:3,d:16 },
-      { type:'wall', x:0,y:0.5,z:-8, w:30,h:3,d:1 },
-      { type:'wall', x:0,y:0.5,z:8, w:30,h:3,d:1 },
-      { type:'wall', x:-1.5,y:0.5,z:-2, w:0.8,h:2,d:3 },
-      { type:'wall', x:1.5,y:0.5,z:2, w:0.8,h:2,d:3 },
-    ]
-  },
-
-  oldtown: {
-    title: '올드타운',
-    desc: '2006년 추가 · 5:5 랭크전 주요맵\n대회룰 클랜전 주류 맵 (약칭: 올타)',
-    theme: { floor: 0x2e2820, wall: 0x3e3830, sky: 0x1e1a14 },
-    zones: [
-      { type:'floor', x:0,y:0,z:0, w:28,d:16, color:0x2e2820 },
-      { type:'zone', x:-11,y:0,z:0, w:5,d:5, color:0x1a3a5c, label:'블루 스폰', team:'blue', bombsite:false },
-      { type:'zone', x:11,y:0,z:0, w:5,d:5, color:0x3a1a1a, label:'레드 스폰', team:'red', bombsite:false },
-      { type:'zone', x:-6,y:0,z:-5, w:5,d:5, color:0x1a4080, label:'A 사이트', team:'blue', bombsite:true },
-      { type:'zone', x:6,y:0,z:5, w:5,d:5, color:0x802020, label:'B 사이트', team:'red', bombsite:true },
-      { type:'zone', x:0,y:0,z:0, w:4,d:4, color:0x3a2a5c, label:'미드', team:'mid', bombsite:false },
-      { type:'zone', x:-3,y:0,z:-3, w:3,d:3, color:0x1a3060, label:'A 입구', team:'blue', bombsite:false },
-      { type:'zone', x:3,y:0,z:3, w:3,d:3, color:0x5a1a1a, label:'B 입구', team:'red', bombsite:false },
-      { type:'zone', x:-6,y:0,z:2, w:3,d:3, color:0x203870, label:'A 뒷길', team:'blue', bombsite:false },
-      { type:'zone', x:6,y:0,z:-2, w:3,d:3, color:0x6a1a1a, label:'B 뒷길', team:'red', bombsite:false },
-      { type:'zone', x:0,y:0,z:-5, w:3,d:3, color:0x2a4a3a, label:'낑설 자리', team:'mid', bombsite:false },
-      { type:'zone', x:-8,y:0,z:4, w:3,d:3, color:0x253560, label:'블루 골목', team:'blue', bombsite:false },
-      { type:'zone', x:8,y:0,z:-4, w:3,d:3, color:0x6a2525, label:'레드 골목', team:'red', bombsite:false },
-      { type:'wall', x:-13,y:0.5,z:0, w:1,h:3,d:16 },
-      { type:'wall', x:13,y:0.5,z:0, w:1,h:3,d:16 },
-      { type:'wall', x:0,y:0.5,z:-8, w:28,h:3,d:1 },
-      { type:'wall', x:0,y:0.5,z:8, w:28,h:3,d:1 },
-      { type:'wall', x:-2,y:0.5,z:-1, w:0.8,h:2,d:5 },
-      { type:'wall', x:2,y:0.5,z:1, w:0.8,h:2,d:5 },
-    ]
-  },
-
-  crossport: {
-    title: '크로스포트',
-    desc: '5:5 랭크전 핵심 맵\n인트로설·B롱 네모자리설 유명 (약칭: 크포)',
-    theme: { floor: 0x202830, wall: 0x303840, sky: 0x141820 },
-    zones: [
-      { type:'floor', x:0,y:0,z:0, w:32,d:18, color:0x202830 },
-      { type:'zone', x:-13,y:0,z:0, w:5,d:5, color:0x1a3a5c, label:'블루 스폰', team:'blue', bombsite:false },
-      { type:'zone', x:13,y:0,z:0, w:5,d:5, color:0x3a1a1a, label:'레드 스폰', team:'red', bombsite:false },
-      { type:'zone', x:-7,y:0,z:-6, w:5,d:5, color:0x1a4080, label:'A 사이트', team:'blue', bombsite:true },
-      { type:'zone', x:7,y:0,z:6, w:5,d:5, color:0x802020, label:'B 사이트', team:'red', bombsite:true },
-      { type:'zone', x:0,y:0,z:0, w:5,d:5, color:0x3a2a5c, label:'미드', team:'mid', bombsite:false },
-      // A long
-      { type:'zone', x:-9,y:0,z:-3, w:4,d:3, color:0x1a3060, label:'A 롱', team:'blue', bombsite:false },
-      // B long
-      { type:'zone', x:9,y:0,z:3, w:4,d:3, color:0x5a1a1a, label:'B 롱', team:'red', bombsite:false },
-      // A short
-      { type:'zone', x:-5,y:0,z:3, w:3,d:3, color:0x203870, label:'A 숏', team:'blue', bombsite:false },
-      // B short
-      { type:'zone', x:5,y:0,z:-3, w:3,d:3, color:0x6a1a1a, label:'B 숏', team:'red', bombsite:false },
-      // intro
-      { type:'zone', x:-10,y:0,z:4, w:4,d:3, color:0x253560, label:'인트로', team:'blue', bombsite:false },
-      // B long 네모자리
-      { type:'zone', x:11,y:0,z:6, w:3,d:3, color:0x6a2525, label:'B롱 네모자리', team:'red', bombsite:false },
-      // connector
-      { type:'zone', x:0,y:0,z:-5, w:3,d:3, color:0x2a4a3a, label:'커넥터', team:'mid', bombsite:false },
-      { type:'zone', x:0,y:0,z:5, w:3,d:3, color:0x2a4a3a, label:'커넥터', team:'mid', bombsite:false },
-      { type:'wall', x:-15,y:0.5,z:0, w:1,h:3,d:18 },
-      { type:'wall', x:15,y:0.5,z:0, w:1,h:3,d:18 },
-      { type:'wall', x:0,y:0.5,z:-9, w:32,h:3,d:1 },
-      { type:'wall', x:0,y:0.5,z:9, w:32,h:3,d:1 },
-      { type:'wall', x:-2,y:0.5,z:0, w:0.8,h:2,d:6 },
-      { type:'wall', x:2,y:0.5,z:0, w:0.8,h:2,d:6 },
-    ]
-  },
-
-  provence: {
-    title: '프로방스',
-    desc: '2007년 추가 · 그리스 산토리니 배경\n드프크시올 대표 맵 · 센터 월샷 유명 (약칭: 프방)',
-    theme: { floor: 0x2a2e38, wall: 0x3a3e50, sky: 0x1a1e28 },
-    zones: [
-      { type:'floor', x:0,y:0,z:0, w:30,d:18, color:0x2a2e38 },
-      { type:'zone', x:-12,y:0,z:0, w:5,d:5, color:0x1a3a5c, label:'블루 스폰', team:'blue', bombsite:false },
-      { type:'zone', x:12,y:0,z:0, w:5,d:5, color:0x3a1a1a, label:'레드 스폰', team:'red', bombsite:false },
-      { type:'zone', x:-7,y:0,z:-6, w:5,d:5, color:0x1a4080, label:'A 사이트\n(미사일 본체)', team:'blue', bombsite:true },
-      { type:'zone', x:7,y:0,z:6, w:5,d:5, color:0x802020, label:'B 사이트\n(제어기기)', team:'red', bombsite:true },
-      { type:'zone', x:0,y:0,z:0, w:5,d:5, color:0x3a2a5c, label:'센터\n(월샷 주의)', team:'mid', bombsite:false },
-      // A sen
-      { type:'zone', x:-7,y:0,z:3, w:4,d:3, color:0x1a3060, label:'A 센 입구', team:'blue', bombsite:false },
-      // B sen
-      { type:'zone', x:7,y:0,z:-3, w:4,d:3, color:0x5a1a1a, label:'B 센 입구', team:'red', bombsite:false },
-      // A back
-      { type:'zone', x:-10,y:0,z:-4, w:3,d:3, color:0x203870, label:'A 뒷길', team:'blue', bombsite:false },
-      // B back
-      { type:'zone', x:10,y:0,z:4, w:3,d:3, color:0x6a1a1a, label:'B 뒷길', team:'red', bombsite:false },
-      // 짤목
-      { type:'zone', x:-4,y:0,z:5, w:3,d:3, color:0x2a4a3a, label:'짤목', team:'mid', bombsite:false },
-      // 사과박스
-      { type:'zone', x:0,y:0,z:-5, w:3,d:3, color:0x2a4a3a, label:'사과박스 (레드)', team:'mid', bombsite:false },
-      { type:'wall', x:-14,y:0.5,z:0, w:1,h:3,d:18 },
-      { type:'wall', x:14,y:0.5,z:0, w:1,h:3,d:18 },
-      { type:'wall', x:0,y:0.5,z:-9, w:30,h:3,d:1 },
-      { type:'wall', x:0,y:0.5,z:9, w:30,h:3,d:1 },
-      { type:'wall', x:-2,y:0.5,z:0, w:0.8,h:2,d:5 },
-      { type:'wall', x:2,y:0.5,z:0, w:0.8,h:2,d:5 },
-    ]
-  },
-
-  desert2: {
-    title: '데저트2',
-    desc: '2011년 추가 · 아프리카 사막 배경\nCS온라인 제휴 맵 · A숏 창문 부스팅 유명',
-    theme: { floor: 0x35302a, wall: 0x453f35, sky: 0x201c18 },
-    zones: [
-      { type:'floor', x:0,y:0,z:0, w:30,d:18, color:0x35302a },
-      { type:'zone', x:-12,y:0,z:0, w:5,d:5, color:0x1a3a5c, label:'블루 스폰', team:'blue', bombsite:false },
-      { type:'zone', x:12,y:0,z:0, w:5,d:5, color:0x3a1a1a, label:'레드 스폰', team:'red', bombsite:false },
-      { type:'zone', x:-7,y:0,z:-6, w:5,d:5, color:0x1a4080, label:'A 사이트', team:'blue', bombsite:true },
-      { type:'zone', x:7,y:0,z:6, w:5,d:5, color:0x802020, label:'B 사이트', team:'red', bombsite:true },
-      { type:'zone', x:0,y:0,z:0, w:4,d:4, color:0x3a2a5c, label:'미드', team:'mid', bombsite:false },
-      { type:'zone', x:-9,y:0,z:-3, w:4,d:3, color:0x1a3060, label:'A 롱', team:'blue', bombsite:false },
-      { type:'zone', x:9,y:0,z:3, w:4,d:3, color:0x5a1a1a, label:'B 롱', team:'red', bombsite:false },
-      { type:'zone', x:-7,y:0,z:3, w:3,d:3, color:0x203870, label:'A 숏\n(창문 부스팅)', team:'blue', bombsite:false },
-      { type:'zone', x:7,y:0,z:-3, w:3,d:3, color:0x6a1a1a, label:'B 숏', team:'red', bombsite:false },
-      // 쌍문
-      { type:'zone', x:-4,y:0,z:-3, w:3,d:3, color:0x2a4a3a, label:'쌍문 앞\n(깡통 부스팅)', team:'mid', bombsite:false },
-      // 벙커
-      { type:'zone', x:4,y:0,z:3, w:3,d:3, color:0x2a4a3a, label:'벙커', team:'mid', bombsite:false },
-      { type:'wall', x:-14,y:0.5,z:0, w:1,h:3,d:18 },
-      { type:'wall', x:14,y:0.5,z:0, w:1,h:3,d:18 },
-      { type:'wall', x:0,y:0.5,z:-9, w:30,h:3,d:1 },
-      { type:'wall', x:0,y:0.5,z:9, w:30,h:3,d:1 },
-      { type:'wall', x:-1.5,y:0.5,z:-2, w:0.8,h:2,d:4 },
-      { type:'wall', x:1.5,y:0.5,z:2, w:0.8,h:2,d:4 },
-    ]
-  },
-
-  dragonroad: {
-    title: '드래곤로드',
-    desc: '홍콩 배경 · 클베 초창기 맵\n2단설 유명 · 5:5 랭크전 고정 맵',
-    theme: { floor: 0x1e2228, wall: 0x2e3238, sky: 0x10141a },
-    zones: [
-      { type:'floor', x:0,y:0,z:0, w:34,d:20, color:0x1e2228 },
-      { type:'zone', x:-14,y:0,z:0, w:5,d:5, color:0x1a3a5c, label:'블루 스폰', team:'blue', bombsite:false },
-      { type:'zone', x:14,y:0,z:0, w:5,d:5, color:0x3a1a1a, label:'레드 스폰', team:'red', bombsite:false },
-      { type:'zone', x:-8,y:0,z:-7, w:6,d:5, color:0x1a4080, label:'A 사이트', team:'blue', bombsite:true },
-      { type:'zone', x:8,y:0,z:7, w:6,d:5, color:0x802020, label:'B 사이트', team:'red', bombsite:true },
-      { type:'zone', x:0,y:0,z:0, w:5,d:5, color:0x3a2a5c, label:'미드', team:'mid', bombsite:false },
-      // A long
-      { type:'zone', x:-10,y:0,z:-3, w:4,d:4, color:0x1a3060, label:'A 롱', team:'blue', bombsite:false },
-      // B long
-      { type:'zone', x:10,y:0,z:3, w:4,d:4, color:0x5a1a1a, label:'B 롱', team:'red', bombsite:false },
-      // A short
-      { type:'zone', x:-7,y:0,z:4, w:3,d:3, color:0x203870, label:'A 숏', team:'blue', bombsite:false },
-      // B short
-      { type:'zone', x:7,y:0,z:-4, w:3,d:3, color:0x6a1a1a, label:'B 숏', team:'red', bombsite:false },
-      // A 지역 (공사중)
-      { type:'zone', x:-4,y:0,z:-5, w:3,d:3, color:0x253560, label:'A 중컨', team:'blue', bombsite:false },
-      // B 지역
-      { type:'zone', x:4,y:0,z:5, w:3,d:3, color:0x6a2525, label:'B 중컨', team:'red', bombsite:false },
-      // 2층 (elevated)
-      { type:'zone', x:-8,y:1.5,z:-3, w:3,d:3, color:0x1a2a50, label:'A 2층', team:'blue', bombsite:false, elevated:true },
-      { type:'zone', x:8,y:1.5,z:3, w:3,d:3, color:0x5a1a1a, label:'B 2층', team:'red', bombsite:false, elevated:true },
-      { type:'wall', x:-16,y:0.5,z:0, w:1,h:3,d:20 },
-      { type:'wall', x:16,y:0.5,z:0, w:1,h:3,d:20 },
-      { type:'wall', x:0,y:0.5,z:-10, w:34,h:3,d:1 },
-      { type:'wall', x:0,y:0.5,z:10, w:34,h:3,d:1 },
-      { type:'wall', x:-2,y:0.5,z:-2, w:0.8,h:2,d:6 },
-      { type:'wall', x:2,y:0.5,z:2, w:0.8,h:2,d:6 },
-    ]
-  },
-
-  citycat: {
-    title: '시티캣',
-    desc: '2008년 추가 · 일본 상가 배경\n복잡한 구조 · 에방 유명 · 5:5 랭크전 포함 (약칭: 시캣)',
-    theme: { floor: 0x222830, wall: 0x323840, sky: 0x141820 },
-    zones: [
-      { type:'floor', x:0,y:0,z:0, w:30,d:20, color:0x222830 },
-      { type:'zone', x:-12,y:0,z:0, w:5,d:6, color:0x1a3a5c, label:'블루 스폰', team:'blue', bombsite:false },
-      { type:'zone', x:12,y:0,z:0, w:5,d:6, color:0x3a1a1a, label:'레드 스폰', team:'red', bombsite:false },
-      { type:'zone', x:-7,y:0,z:-7, w:5,d:5, color:0x1a4080, label:'A 사이트', team:'blue', bombsite:true },
-      { type:'zone', x:7,y:0,z:7, w:5,d:5, color:0x802020, label:'B 사이트', team:'red', bombsite:true },
-      { type:'zone', x:0,y:0,z:0, w:4,d:4, color:0x3a2a5c, label:'미드 (에방)', team:'mid', bombsite:false },
-      // A 통로
-      { type:'zone', x:-9,y:0,z:-3, w:4,d:3, color:0x1a3060, label:'A 통로', team:'blue', bombsite:false },
-      // B 통로
-      { type:'zone', x:9,y:0,z:3, w:4,d:3, color:0x5a1a1a, label:'B 통로', team:'red', bombsite:false },
-      // 담배방 (에방)
-      { type:'zone', x:-3,y:0,z:5, w:4,d:3, color:0x2a4a3a, label:'담배방 (에방)', team:'mid', bombsite:false },
-      // 상가 1층
-      { type:'zone', x:-4,y:0,z:-5, w:3,d:3, color:0x253560, label:'상가 1층', team:'blue', bombsite:false },
-      // 상가 2층
-      { type:'zone', x:-4,y:1.5,z:-5, w:3,d:3, color:0x1a2a50, label:'상가 2층', team:'blue', bombsite:false, elevated:true },
-      // B 뒷길
-      { type:'zone', x:9,y:0,z:-4, w:3,d:3, color:0x6a2525, label:'B 뒷길', team:'red', bombsite:false },
-      // 중앙 골목
-      { type:'zone', x:4,y:0,z:-4, w:3,d:3, color:0x2a4a3a, label:'중앙 골목', team:'mid', bombsite:false },
-      { type:'wall', x:-14,y:0.5,z:0, w:1,h:3,d:20 },
-      { type:'wall', x:14,y:0.5,z:0, w:1,h:3,d:20 },
-      { type:'wall', x:0,y:0.5,z:-10, w:30,h:3,d:1 },
-      { type:'wall', x:0,y:0.5,z:10, w:30,h:3,d:1 },
-      { type:'wall', x:-1.5,y:0.5,z:-1, w:0.8,h:2,d:5 },
-      { type:'wall', x:1.5,y:0.5,z:1, w:0.8,h:2,d:5 },
-    ]
-  }
+// 팀별 색상
+const TC={
+  blue:  {f:0x0d2540,e:0x3a8fd4},
+  red:   {f:0x400d0d,e:0xd43a3a},
+  mid:   {f:0x1a1238,e:0x7755cc},
+  path:  {f:0x0c2214,e:0x3a7a55},
+  base_b:{f:0x061528,e:0x1f5599},
+  base_r:{f:0x280505,e:0x992222},
+  bomb:  {f:0x302400,e:0xe8b84b},
 };
 
 // ============================================================
-//  COLOR MAPPING
+//  맵 데이터 (이미지 기반)
 // ============================================================
-const ZONE_COLORS = {
-  blue:    { normal: 0x1a4080, hover: 0x2255aa, label: '#3a8fd4' },
-  red:     { normal: 0x802020, hover: 0xaa2222, label: '#d43a3a' },
-  mid:     { normal: 0x3a2a5c, hover: 0x5a3a8c, label: '#8855cc' },
-  path:    { normal: 0x1a3a2a, hover: 0x2a5a3a, label: '#4caf89' },
+const MAPS={
+
+  // ── 드래곤로드 (좌=레드베이스, 상=A설대, 우하=B설대/당구장)
+  dragonroad:{
+    title:'드래곤로드',
+    desc:'클베 초창기 맵 · 홍콩 배경\n5:5 랭크전 고정 맵',
+    cam:{theta:.9,phi:1.05,r:55,tx:-1,ty:0,tz:2},
+    zones:[
+      F(0,0,52,40),
+      // 레드베이스 (좌)
+      Z(-20, -2, 7,6, '레드베이스','base_r'),
+      Z(-16, 8,  4,4, '포차1층','red'),
+      Z(-16, 4,  4,4, '포차2층','red'),
+      Z(-11, 9,  4,4, '야시','red'),
+      // A 사이트 (상단 중앙)
+      Z( -2,-16, 7,5, 'A설대','blue',true),
+      Z( -8,-12, 5,4, 'A포차','blue'),
+      Z(  4,-13, 5,4, '트럭','blue'),
+      Z( 11,-14, 3,3, '자판기','blue'),
+      // A반지하
+      Z(  5, -8, 4,4, 'A반지하','mid'),
+      Z(  8,-10, 2,2, '1번','mid'),
+      Z(  8, -8, 2,2, '2번','mid'),
+      Z(  8, -6, 2,2, '3번','mid'),
+      // 미드
+      Z( -5,-10, 5,4, '기둥','mid'),
+      Z( -4, -4, 5,5, '빨방','mid'),
+      Z(  1, -5, 4,5, '노방','mid'),
+      Z(  8, -3, 3,3, '반지하','mid'),
+      Z( -2,  2, 4,4, '로비','mid'),
+      Z( -1, -1, 4,3, '창호지','path'),
+      Z(  3,  4, 4,3, '락게','path'),
+      Z(  7,  5, 5,4, '락커','mid'),
+      Z(  7,  8, 3,3, '철밀','path'),
+      Z(  4, 11, 5,4, '철다리','mid'),
+      Z(  9, 10, 3,3, '광계','path'),
+      Z(  8, 15, 4,4, '언더','path'),
+      // B 사이트 (우하)
+      Z( 18,  3, 5,6, '당구장','red'),
+      Z(  5, 18, 7,5, 'B설대','red',true),
+      Z( -2, 13, 5,4, '보방','red'),
+      Z( -3,  8, 3,4, '로게','path'),
+      Z( -6,  9, 3,3, '날개','path'),
+      Z( -6, 14, 4,4, 'ㄷ자','mid'),
+      Z( 10, 18, 4,4, '쓰리강','path'),
+      Z( 11, 14, 3,4, '옥계','path'),
+      Z(  8, 20, 4,3, '오동','red'),
+      Z(  6, 22, 4,3, '5미리','path'),
+      // walls
+      W(-25,0,1,40), W(25,0,1,40),
+      W(0,-20,52,1), W(0,20,52,1),
+      W(-1,-1,1,6),  W(3,8,1,5),
+    ]
+  },
+
+  // ── 시티캣 (블루=상, 레드=하, A=좌중, B=우상)
+  citycat:{
+    title:'시티캣',
+    desc:'2008년 추가 · 일본 상가 배경\n약칭: 시캣 · 5:5 랭크전 포함',
+    cam:{theta:.9,phi:1.05,r:52,tx:1,ty:0,tz:0},
+    zones:[
+      F(0,0,34,42),
+      // 블루베이스 (상)
+      Z(-1,-18, 7,4, '블루베이스','base_b'),
+      Z(-9,-14, 4,4, '블베뒷길','blue'),
+      // A 사이트 구역 (좌)
+      Z(-11, -5, 5,5, 'A설대','blue',true),
+      Z(-10, -9, 4,3, '체크방','blue'),
+      Z( -8, -7, 3,3, '엘베','blue'),
+      Z(-11, -1, 4,3, '매점','blue'),
+      Z( -7,  2, 4,4, '잔디','blue'),
+      Z( -5,  7, 4,4, '창방','blue'),
+      // 센터/미드
+      Z( -2,-11, 4,4, '센멀리','mid'),
+      Z( -2, -6, 6,6, '센터','mid'),
+      Z( -3, -2, 2,2, '센날개','mid'),
+      Z( -1,  2, 5,4, '언더','mid'),
+      Z(  5,-13, 4,4, '삼거리','mid'),
+      Z(  2,  6, 3,3, '갈문','path'),
+      Z(  2, 10, 5,4, 'A방','mid'),
+      Z(  5,  4, 4,3, '악어자리','path'),
+      // B 사이트 구역 (우상)
+      Z( 10,-13, 5,5, 'B설대','red',true),
+      Z(  7,-16, 4,4, 'B부대','red'),
+      Z( 10, -8, 4,3, 'B비설대','red'),
+      Z(  5, -7, 4,4, 'B숏','red'),
+      Z(  9, -4, 4,5, 'B롱','red'),
+      Z( 14, -3, 3,4, '개구','red'),
+      Z( 11,  4, 5,5, 'B방(비방)','red'),
+      Z(  9, 10, 4,4, 'B방뒷길','red'),
+      Z(  6,  7, 3,3, '비석','path'),
+      // 레드베이스 (하)
+      Z(  2, 17, 7,4, '레드베이스','base_r'),
+      W(-16,0,1,42), W(16,0,1,42),
+      W(0,-21,34,1), W(0,21,34,1),
+      W(-4,-3,1,6),  W(3,-1,1,5),
+    ]
+  },
+
+  // ── 올드타운 (레드=상, A설대=하좌, B설대=우)
+  oldtown:{
+    title:'올드타운',
+    desc:'2006년 추가 · 5:5 랭크전 주요 맵\n약칭: 올타 · 대회룰 클랜전 주류 맵',
+    cam:{theta:.9,phi:1.05,r:55,tx:0,ty:0,tz:0},
+    zones:[
+      F(0,0,44,46),
+      // 레드베이스 (상)
+      Z(  1,-21, 7,4, '레드베이스','base_r'),
+      Z(  1,-17, 4,3, '레베언더','red'),
+      Z(  7,-14, 3,3, '레베7','red'),
+      // B 사이트 구역 (우)
+      Z( 15, -8, 5,5, 'B설대','red',true),
+      Z(  8, -9, 5,4, '내리막','red'),
+      Z(  6,-12, 4,3, '센삼','mid'),
+      Z( 11,-13, 3,3, '센낚시','mid'),
+      Z( 15,-13, 3,3, 'B7','red'),
+      Z( 11, -8, 3,3, 'B방','red'),
+      Z( 13, -5, 4,4, '방낚시','red'),
+      Z(  9, -6, 3,3, '방사다리','path'),
+      // 미드
+      Z( -2, -8, 6,5, 'A방','blue'),
+      Z( -4, -4, 4,4, 'A방날개','blue'),
+      Z(  1, -5, 4,5, '언삼','mid'),
+      Z(  0,  0, 5,5, '방밖','mid'),
+      Z( -3,  4, 4,4, '다리','mid'),
+      Z(  3,  4, 4,4, '다리밑','mid'),
+      Z(  0,  8, 4,4, '블베언더','mid'),
+      Z(  6,  6, 3,3, '센7','mid'),
+      Z( 11,  5, 4,4, 'B입구','path'),
+      Z(  8,  9, 4,4, '벽부','path'),
+      // A 사이트 구역 (하좌)
+      Z(-10,  9, 5,5, 'A설대','blue',true),
+      Z(-10,  5, 4,4, 'A입구낚시','blue'),
+      Z( -6,  9, 4,3, 'A입구날개','blue'),
+      Z(-13,  5, 3,3, '모나리자','blue'),
+      Z( -9, 12, 3,3, '45도','blue'),
+      Z( -6, 13, 3,3, '노포자리','blue'),
+      Z( -5, 10, 3,3, '지하낙하','mid'),
+      Z( -4, 14, 4,3, '농구입구','path'),
+      Z( -8, 16, 3,3, '뒷길','blue'),
+      Z( -1, 18, 5,4, 'A농구','blue'),
+      Z(  6, 18, 5,4, 'B농구','red'),
+      Z(  3, 14, 5,4, '농구벤치','path'),
+      W(-21,0,1,46), W(21,0,1,46),
+      W(0,-23,44,1), W(0,23,44,1),
+    ]
+  },
+
+  // ── 이탈리아 (블루=좌, 레드=우, A=좌하, B=좌상)
+  italy:{
+    title:'이탈리아',
+    desc:'인질구출 미션 맵\n장미 · 시장 · 터널 구조',
+    cam:{theta:.7,phi:1.0,r:50,tx:1,ty:0,tz:0},
+    zones:[
+      F(0,0,52,32),
+      // 블루베이스 (좌)
+      Z(-21, 0, 5,6, '블루베이스','base_b'),
+      // B 사이트 (좌상)
+      Z(-21,-9, 5,5, 'B설대','blue',true),
+      Z(-16,-9, 4,4, '베란다','blue'),
+      Z(-10,-9, 8,4, '터널','blue'),
+      // 좌측 중단
+      Z(-17, 0, 4,4, '와인방','blue'),
+      Z(-13, 0, 3,3, '중계','mid'),
+      Z( -9, 0, 3,3, '센','mid'),
+      Z( -7,-3, 4,4, '삼거리','mid'),
+      Z( -7, 3, 3,3, 'ㄱ자','blue'),
+      // A 사이트 (좌하)
+      Z(-19, 9, 5,5, 'A설대','blue',true),
+      Z(-12, 7, 4,4, '아웃코스','path'),
+      Z(-10,11, 4,3, '인코스','path'),
+      Z( -7, 8, 4,3, '장미다리','path'),
+      Z( -5,11, 4,3, '머나','mid'),
+      Z( -4, 7, 4,3, '장미','mid'),
+      Z( -4, 4, 3,3, '장미아래','path'),
+      // 시장 구역 (중상)
+      Z(  0,-9, 7,6, '시장','mid'),
+      Z( -2,-14, 3,3, '투강','mid'),
+      Z(  6,-12, 4,3, '시장낚시','mid'),
+      Z( -5, -7, 4,4, '시장입구','path'),
+      // 레드베이스 (우)
+      Z( 19, 0, 5,6, '레드베이스','base_r'),
+      W(-24,0,1,32), W(24,0,1,32),
+      W(0,-16,52,1), W(0,16,52,1),
+      W(-4, 0,1,6),  W(3,-4,1,5),
+    ]
+  },
+
+  // ── 제5보급창고 (레드=좌, B=우상, A=우하)
+  supply5:{
+    title:'제5보급창고',
+    desc:'2012년 추가 · 3보급 변형 구조\n5:5 랭크전 포함 맵',
+    cam:{theta:.7,phi:1.05,r:55,tx:3,ty:0,tz:0},
+    zones:[
+      F(0,0,50,40),
+      // 레드베이스 (좌)
+      Z(-19, 2, 6,6, '레드베이스','base_r'),
+      // B 사이트 구역 (우상)
+      Z( 17,-15, 6,6, 'B설대','red',true),
+      Z(  3,-17, 4,4, '철','path'),
+      Z(  8,-15, 5,4, 'B입구','path'),
+      Z( 11,-11, 4,5, '계끌','mid'),
+      Z( 14, -9, 4,4, '백창','mid'),
+      Z( 16, -7, 3,3, '앵글','mid'),
+      Z( 13, -6, 3,4, '앞창','mid'),
+      Z( 16, -4, 4,4, '1기','red'),
+      Z( 19, -2, 4,4, '2기','red'),
+      Z( 17,  2, 4,5, '3기','red'),
+      Z( 11,  2, 6,5, '4기','red'),
+      Z( 12, -2, 3,3, '일문','mid'),
+      Z(  6,-11, 3,4, '난간','mid'),
+      Z(  2,-13, 4,4, 'B롱','mid'),
+      Z(  6, -7, 3,4, '2층','mid'),
+      Z(  6, -4, 3,3, '3층','mid'),
+      Z(  9, -8, 3,3, '개구','path'),
+      Z(  7,  0, 5,4, '짝창','path'),
+      // 미드
+      Z( -3, -4, 4,4, '투강','mid'),
+      Z( -1,  1, 5,4, 'B끝','mid'),
+      Z( -2,  6, 4,4, '짝방','path'),
+      Z(  3,  5, 6,5, '증통','mid'),
+      Z(  5,  9, 5,4, '중길','path'),
+      Z(  7, 13, 3,3, '숏녹','path'),
+      // A 사이트 구역 (우하)
+      Z( 17, 14, 6,6, 'A설대','blue',true),
+      Z( 11, 14, 4,4, '설컨위','blue'),
+      Z(  6, 14, 5,4, '쓰리강','path'),
+      Z(  5, 11, 4,4, 'A머리','blue'),
+      Z(  2, 12, 3,4, '녹','blue'),
+      Z( 15, 10, 4,3, '3미리','path'),
+      Z( 19,  9, 4,4, '컨뒤','blue'),
+      Z( -3, 10, 5,4, 'A숏','blue'),
+      Z( -9,  8, 5,4, 'A홀','blue'),
+      Z( -7, 12, 4,4, '가숫','blue'),
+      Z(-14, 10, 3,4, '삼빡','blue'),
+      Z(-16, 14, 4,4, 'ㄱ자','blue'),
+      W(-23,0,1,40), W(23,0,1,40),
+      W(0,-20,50,1), W(0,20,50,1),
+    ]
+  },
+
+  // ── 지하철 (블루=상, 세로형, 우측 아웃코스)
+  subway:{
+    title:'지하철',
+    desc:'세로형 구조 맵\nA/B 아웃코스 특이 구조',
+    cam:{theta:.9,phi:1.05,r:52,tx:3,ty:0,tz:0},
+    zones:[
+      F(0,0,34,46),
+      // 블루베이스 (상)
+      Z( 1,-21, 6,4, '블루베이스','base_b'),
+      // B 사이트 구역 (우상)
+      Z( 7,-13, 5,5, 'B설대','red',true),
+      Z(-3,-13, 5,4, '블베계단','blue'),
+      Z( 3, -9, 3,3, 'B좌빡','path'),
+      Z( 8, -8, 5,5, 'B계단','mid'),
+      // A 사이트 구역 (좌중)
+      Z(-8, -4, 5,5, 'A설대','blue',true),
+      Z(-9, -8, 4,4, 'A좌빡','blue'),
+      // 센터/미드
+      Z(-1, -5, 4,4, '센','mid'),
+      Z( 2, -2, 4,4, '센개찰구','mid'),
+      Z( 0,  3, 4,4, '개구','mid'),
+      // A 하단
+      Z(-8,  3, 5,5, '책방','blue'),
+      Z(-9,  8, 5,4, '깨벽','blue'),
+      Z(-5,  9, 4,3, '책방입구','path'),
+      Z( 3,  7, 4,4, 'A개찰구','path'),
+      // A 계단
+      Z(-3, 13, 4,4, 'A아웃코스','blue'),
+      Z( 1, 15, 5,5, 'A계단','blue'),
+      Z(-3, 18, 3,3, 'A인코스','blue'),
+      // 우측 아웃코스 통로
+      Z(15,-11, 5,4, 'B아웃코스','red'),
+      Z(15, -6, 5,4, 'B인코스','red'),
+      Z(15,  1, 5,4, '연결고리','path'),
+      Z(15,  6, 5,4, 'A아웃코스','blue'),
+      Z(15, 11, 5,4, 'A인코스','blue'),
+      W(-14,0,1,46), W(10,0,1,23),
+      W(0,-23,22,1), W(0,23,22,1),
+      W(12,-12,7,1), W(12,13,7,1),
+      W(19,0,1,26),
+    ]
+  },
+
+  // ── 크로스포트 (블루=우상, 레드=하, A=좌상, B=우하)
+  crossport:{
+    title:'크로스포트',
+    desc:'5:5 랭크전 핵심 맵\n인트로설·B롱 네모자리 유명 · 약칭: 크포',
+    cam:{theta:.8,phi:1.05,r:56,tx:0,ty:0,tz:1},
+    zones:[
+      F(0,0,48,44),
+      // 블루베이스 (우상)
+      Z( 13,-15, 8,5, '블루베이스','base_b'),
+      Z(  5,-15, 5,4, '베이스입구','blue'),
+      // A 사이트 구역 (좌상)
+      Z(-18,-11, 5,5, 'A설대','blue',true),
+      Z(-14,-14, 4,4, '설뒤','blue'),
+      Z(-13,-11, 4,3, '신발장','blue'),
+      Z( -9,-14, 4,4, '대문','blue'),
+      Z( -9,-11, 3,3, '창문','blue'),
+      Z(-15, -8, 4,4, '좌빡','blue'),
+      Z(-11, -8, 3,3, '반지하','blue'),
+      Z(-11, -6, 3,3, '반지하박스','path'),
+      Z(-12, -4, 3,3, '개구통','path'),
+      // A 롱
+      Z(-16, -3, 5,5, 'A롱','blue'),
+      Z(-18,  4, 4,4, '천막','blue'),
+      Z(-18,  9, 4,4, '내리막','blue'),
+      Z(-18, 14, 4,5, '베개삼','blue'),
+      Z(-13,  9, 4,5, '베란다','blue'),
+      Z(-12, 13, 3,4, '베란다개구','path'),
+      // 미드/센터
+      Z( -5,-10, 5,4, '개방','mid'),
+      Z(  0,-11, 5,4, '게끌','mid'),
+      Z( -6, -6, 5,5, '개삼','mid'),
+      Z( -3, -5, 3,3, 'B개구','path'),
+      Z( -4,  0, 4,5, '포대','mid'),
+      Z(  0, -3, 4,4, '쌀방','mid'),
+      Z( -1,  5, 5,4, '술통','path'),
+      Z( -4,  9, 4,4, '쌀적','path'),
+      // B 사이트 구역 (우하)
+      Z( 15,  9, 5,5, 'B설대','red',true),
+      Z( 11,  5, 4,4, 'B방','red'),
+      Z(  8,  1, 4,4, 'B숏','red'),
+      Z(  8, -3, 3,3, '숨방','path'),
+      Z(  9, -5, 3,3, '쥐시','path'),
+      Z(  8,  5, 5,5, 'B롱','red'),
+      Z( 14,  4, 4,5, '우빡','red'),
+      Z( 17,  1, 3,4, '집','red'),
+      Z( 19,  0, 3,4, '45도','red'),
+      Z( 19, -4, 4,4, '강건자리','red'),
+      Z( 17, -7, 4,3, '그림자자리','path'),
+      // 레드베이스 (하)
+      Z(  0, 19, 8,5, '레드베이스','base_r'),
+      W(-23,0,1,44), W(23,0,1,44),
+      W(0,-22,48,1), W(0,22,48,1),
+      W(-1,-1,1,5),
+    ]
+  },
+
+  // ── 팰리스 (레드=상, 블루=하, A=하좌, B=우하)
+  palace:{
+    title:'팰리스',
+    desc:'세로형 구조 맵\nA/B 설대 하단 배치',
+    cam:{theta:.9,phi:1.05,r:50,tx:0,ty:0,tz:0},
+    zones:[
+      F(0,0,32,46),
+      // 레드베이스 (상)
+      Z( 0,-20, 6,5, '레드베이스','base_r'),
+      // B 사이트 구역 (우)
+      Z(11,-11, 4,4, '판자','red'),
+      Z(11, -7, 4,4, 'B방','red'),
+      Z( 8, -4, 4,4, 'B숏입구','path'),
+      Z(11,  0, 5,5, 'B롱','red'),
+      Z(11,  7, 5,5, 'B부대','red'),
+      Z(11, 13, 5,5, 'B설대','red',true),
+      Z( 5, 13, 4,5, 'B계단','path'),
+      // 미드/센터
+      Z(-4, -7, 5,5, 'A롱','blue'),
+      Z(-3,  0, 5,5, '시계방','mid'),
+      Z(-5,  4, 4,4, '대문','mid'),
+      Z( 1,  4, 4,4, '중길','mid'),
+      Z( 1,  9, 4,4, 'B숏','mid'),
+      Z(-3,  9, 5,5, '백화점','mid'),
+      Z( 1, 13, 4,4, '책방','path'),
+      // A 사이트 (하좌)
+      Z(-11, 13, 5,5, 'A설대','blue',true),
+      // 블루베이스 (하)
+      Z( 0, 20, 7,4, '블루베이스','base_b'),
+      W(-15,0,1,46), W(15,0,1,46),
+      W(0,-23,32,1), W(0,23,32,1),
+      W(-1, 2,1,6),
+    ]
+  },
+
+  // ── 프로방스 (레드=상, 블루=하, B=좌중, A=우하)
+  provence:{
+    title:'프로방스',
+    desc:'2007년 추가 · 그리스 산토리니 배경\n드프크시올 5대 맵 · 약칭: 프방',
+    cam:{theta:.8,phi:1.05,r:56,tx:0,ty:0,tz:1},
+    zones:[
+      F(0,0,50,42),
+      // 레드베이스 (상)
+      Z(-3,-16, 7,4, '레드베이스','base_r'),
+      Z(-4,-12, 4,4, '세이브존','red'),
+      Z( 4,-10, 4,4, '뒷길창문','path'),
+      Z( 6,-10, 4,4, '뒷길','path'),
+      Z( 2,-10, 4,3, '에부대','red'),
+      Z( 9,-10, 5,5, 'A방','red'),
+      // B 사이트 구역 (좌중)
+      Z(-15, -3, 5,5, 'B설대','red',true),
+      Z(-12, -6, 4,4, 'B방','red'),
+      Z(-15,  3, 4,4, '아빠자리','red'),
+      Z(-11,  3, 4,4, '케비넷','red'),
+      Z(-11, -2, 4,3, '삼빡','mid'),
+      Z( -8, -4, 3,3, '센숏','mid'),
+      Z( -6, -4, 3,3, '사과박스','mid'),
+      Z(-10,  7, 4,4, 'B롱','red'),
+      Z(-15,  7, 3,4, '우빡','red'),
+      Z(-13, 12, 4,4, '좌빡','red'),
+      Z( -8, 12, 3,3, '엄마자리','path'),
+      // 미드
+      Z( -3, -6, 4,4, '내리막','mid'),
+      Z( -3, -2, 4,4, '중짤','mid'),
+      Z( -1,  3, 4,4, '인짤','mid'),
+      Z( -3,  7, 4,4, 'B숏','mid'),
+      Z( -4, 12, 4,4, '역짤','path'),
+      Z( -2, 14, 3,3, '1미리','path'),
+      Z(  2,  7, 5,4, '센숏','mid'),
+      Z(  2,  1, 5,5, '센터','mid'),
+      Z( -1, -4, 4,4, '센사과박스','mid'),
+      // A 사이트 구역 (우하)
+      Z( 15,  8, 5,5, 'A설대','blue',true),
+      Z( 18, 12, 4,4, '포대','blue'),
+      Z( 13, 12, 4,4, '보일러','blue'),
+      Z( 10, 10, 4,4, '삼각대','blue'),
+      Z( 15,  4, 4,4, '천막','blue'),
+      Z( 18,  4, 4,4, '우유통','blue'),
+      Z( 10,  5, 4,4, '네모','mid'),
+      Z( 11, -1, 4,4, 'A숏','blue'),
+      Z(  6,  0, 4,4, 'F8','path'),
+      Z( 13,  1, 4,4, '대문','path'),
+      Z( 12, -4, 4,4, '쓰레기통','path'),
+      Z( 16, -5, 3,3, '전천막','blue'),
+      Z( 19, -5, 3,4, 'A전','blue'),
+      Z( 14, -8, 4,4, 'A전사과박스','blue'),
+      // 블루베이스 (하)
+      Z(  5, 17, 7,4, '블루베이스','base_b'),
+      W(-23,0,1,42), W(23,0,1,42),
+      W(0,-21,50,1), W(0,21,50,1),
+      W(-1, 0,1,5),  W(6, 4,1,4),
+    ]
+  },
+
+  // ── 화이트스콜 (블루=우상, 레드=하, A=상중, B=우하)
+  whitesquall:{
+    title:'화이트스콜',
+    desc:'그리스 산토리니 배경\n약칭: 화콜',
+    cam:{theta:.9,phi:1.05,r:52,tx:0,ty:0,tz:0},
+    zones:[
+      F(0,0,44,40),
+      // 블루베이스 (우상)
+      Z( 15,-14, 7,4, '블루베이스','base_b'),
+      // A 사이트 구역 (상중)
+      Z(  2,-15, 5,5, 'A설대','blue',true),
+      Z(  9,-13, 4,3, '원문','blue'),
+      Z( -4,-13, 4,4, '쌍문','blue'),
+      Z( -5, -9, 5,5, '시계방','mid'),
+      Z(  2,-10, 5,5, '물방','mid'),
+      Z(  1, -6, 4,3, '물방입구','path'),
+      // 좌측 구역
+      Z(-10, -6, 4,4, '항방','mid'),
+      Z(-12, -2, 4,4, '광숏','mid'),
+      Z(-17,  2, 7,7, '광장','mid'),
+      Z(-10,  5, 4,4, '광장박스','path'),
+      // 센터/미드
+      Z( -3, -2, 4,4, '센낚시','mid'),
+      Z(  1,  3, 5,5, '센숏','mid'),
+      Z(  1,  8, 5,5, '센','mid'),
+      Z( -5, 11, 5,5, '레베광장','path'),
+      // B 사이트 구역 (우하)
+      Z( 12, 10, 5,5, 'B설대','red',true),
+      Z( 12,  5, 4,4, '밀방','red'),
+      // 우측 구역
+      Z( 17, -8, 4,5, '화단','blue'),
+      Z( 18, -3, 4,4, '16빡','blue'),
+      // 레드베이스 (하)
+      Z(  2, 17, 7,4, '레드베이스','base_r'),
+      W(-21,0,1,40), W(21,0,1,40),
+      W(0,-20,44,1), W(0,20,44,1),
+      W(-1, 0,1,5),  W(7,-4,1,4),
+    ]
+  },
 };
 
 // ============================================================
-//  THREE.JS SCENE
+//  Three.js 세팅
 // ============================================================
-const canvas = document.getElementById('three-canvas');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-renderer.setPixelRatio(window.devicePixelRatio);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const cv=document.getElementById('cv');
+const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0b0e);
-scene.fog = new THREE.Fog(0x0a0b0e, 50, 120);
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x08090c);
+scene.fog=new THREE.Fog(0x08090c,65,140);
 
-const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 500);
-camera.position.set(0, 28, 28);
-camera.lookAt(0, 0, 0);
-
-// Lighting
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-scene.add(ambientLight);
-
-const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-dirLight.position.set(10, 20, 10);
-dirLight.castShadow = true;
-scene.add(dirLight);
-
-const fillLight = new THREE.DirectionalLight(0x8899cc, 0.3);
-fillLight.position.set(-10, 10, -10);
-scene.add(fillLight);
-
-// Grid helper
-const gridHelper = new THREE.GridHelper(60, 60, 0x1a1d25, 0x151820);
-scene.add(gridHelper);
+const camera=new THREE.PerspectiveCamera(45,1,0.1,500);
+scene.add(new THREE.AmbientLight(0xffffff,0.5));
+const sun=new THREE.DirectionalLight(0xffffff,0.7);
+sun.position.set(15,25,10); sun.castShadow=true; scene.add(sun);
+scene.add(Object.assign(new THREE.DirectionalLight(0x7799cc,0.2),{position:{set:()=>{}}}) );
+const fl=new THREE.DirectionalLight(0x7799cc,0.2);
+fl.position.set(-10,10,-15); scene.add(fl);
+scene.add(new THREE.GridHelper(90,90,0x181c24,0x10141c));
 
 // ============================================================
-//  ORBIT CONTROLS (manual)
+//  오빗 컨트롤
 // ============================================================
-let isDragging = false, isRightDrag = false;
-let prevMouse = { x: 0, y: 0 };
-let spherical = { theta: Math.PI/4, phi: Math.PI/3.5, r: 38 };
-let target = new THREE.Vector3(0, 0, 0);
+let drag=false,rDrag=false,prev={x:0,y:0};
+let sph={theta:.9,phi:1.05,r:55};
+let tgt=new THREE.Vector3();
 
-function updateCamera() {
-  const x = target.x + spherical.r * Math.sin(spherical.phi) * Math.sin(spherical.theta);
-  const y = target.y + spherical.r * Math.cos(spherical.phi);
-  const z = target.z + spherical.r * Math.sin(spherical.phi) * Math.cos(spherical.theta);
-  camera.position.set(x, y, z);
-  camera.lookAt(target);
+function applyCamera(){
+  camera.position.set(
+    tgt.x+sph.r*Math.sin(sph.phi)*Math.sin(sph.theta),
+    tgt.y+sph.r*Math.cos(sph.phi),
+    tgt.z+sph.r*Math.sin(sph.phi)*Math.cos(sph.theta)
+  );
+  camera.lookAt(tgt);
 }
-updateCamera();
 
-canvas.addEventListener('mousedown', e => {
-  isDragging = true;
-  isRightDrag = e.button === 2;
-  prevMouse = { x: e.clientX, y: e.clientY };
-  e.preventDefault();
-});
-canvas.addEventListener('contextmenu', e => e.preventDefault());
-
-window.addEventListener('mousemove', e => {
-  if (!isDragging) return;
-  const dx = e.clientX - prevMouse.x;
-  const dy = e.clientY - prevMouse.y;
-  if (isRightDrag) {
-    const right = new THREE.Vector3();
-    const up = new THREE.Vector3();
-    camera.getWorldDirection(right);
-    right.cross(camera.up).normalize();
-    up.copy(camera.up);
-    target.addScaledVector(right, -dx * 0.03);
-    target.addScaledVector(up, dy * 0.03);
-  } else {
-    spherical.theta -= dx * 0.008;
-    spherical.phi = Math.max(0.15, Math.min(Math.PI/2.2, spherical.phi - dy * 0.008));
+cv.addEventListener('mousedown',e=>{drag=true;rDrag=e.button===2;prev={x:e.clientX,y:e.clientY};e.preventDefault();});
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+window.addEventListener('mousemove',e=>{
+  if(!drag)return;
+  const dx=e.clientX-prev.x,dy=e.clientY-prev.y;
+  if(rDrag){
+    const r=new THREE.Vector3(),u=new THREE.Vector3();
+    camera.getWorldDirection(r);r.cross(camera.up).normalize();u.copy(camera.up);
+    tgt.addScaledVector(r,-dx*.04);tgt.addScaledVector(u,dy*.04);
+  }else{
+    sph.theta-=dx*.007;
+    sph.phi=Math.max(.1,Math.min(Math.PI/2.1,sph.phi-dy*.007));
   }
-  prevMouse = { x: e.clientX, y: e.clientY };
-  updateCamera();
+  prev={x:e.clientX,y:e.clientY};applyCamera();
 });
+window.addEventListener('mouseup',()=>drag=false);
+cv.addEventListener('wheel',e=>{sph.r=Math.max(8,Math.min(95,sph.r+e.deltaY*.04));applyCamera();e.preventDefault();},{passive:false});
+window.addEventListener('keydown',e=>{if(e.key==='r'||e.key==='R')resetView(currentMap);});
 
-window.addEventListener('mouseup', () => { isDragging = false; });
-
-canvas.addEventListener('wheel', e => {
-  spherical.r = Math.max(8, Math.min(80, spherical.r + e.deltaY * 0.04));
-  updateCamera();
-  e.preventDefault();
-}, { passive: false });
-
-window.addEventListener('keydown', e => {
-  if (e.key === 'r' || e.key === 'R') resetView();
-});
-
-function resetView() {
-  spherical = { theta: Math.PI/4, phi: Math.PI/3.5, r: 38 };
-  target.set(0, 0, 0);
-  updateCamera();
+// ============================================================
+//  뷰 리셋
+// ============================================================
+function resetView(key){
+  const d=MAPS[key]?.cam;
+  if(!d){sph={theta:.9,phi:1.05,r:55};tgt.set(0,0,0);}
+  else{sph={theta:d.theta,phi:d.phi,r:d.r};tgt.set(d.tx||0,0,d.tz||0);}
+  applyCamera();
 }
 
 // ============================================================
-//  MAP BUILDING
+//  맵 빌드
 // ============================================================
-let currentObjects = [];
-let labelDivs = [];
-let currentTeamFilter = 'both';
+let objs=[],labels=[];
 
-function clearMap() {
-  currentObjects.forEach(o => scene.remove(o));
-  currentObjects = [];
-  labelDivs.forEach(d => d.remove());
-  labelDivs = [];
+function clearScene(){objs.forEach(o=>scene.remove(o));objs=[];labels.forEach(d=>d.remove());labels=[];}
+
+const matCache={};
+function getMat(color,transparent=false,opacity=1){
+  const k=`${color}_${transparent}_${opacity}`;
+  if(!matCache[k])matCache[k]=new THREE.MeshLambertMaterial({color,transparent,opacity});
+  return matCache[k];
 }
 
-function buildMap(mapKey) {
-  clearMap();
-  const mapData = MAPS[mapKey];
-  if (!mapData) return;
+function buildMap(key){
+  clearScene();
+  const md=MAPS[key]; if(!md)return;
+  document.getElementById('mt').textContent=md.title;
+  document.getElementById('md').textContent=md.desc;
 
-  // Update info
-  document.getElementById('map-title').textContent = mapData.title;
-  document.getElementById('map-desc').textContent = mapData.desc;
-
-  mapData.zones.forEach(z => {
-    if (z.type === 'floor') {
-      const geo = new THREE.BoxGeometry(z.w, 0.15, z.d);
-      const mat = new THREE.MeshLambertMaterial({ color: z.color });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(z.x, -0.075, z.z);
-      mesh.receiveShadow = true;
-      scene.add(mesh);
-      currentObjects.push(mesh);
-      return;
+  md.zones.forEach(z=>{
+    // 바닥
+    if(z.type==='floor'){
+      const m=new THREE.Mesh(new THREE.BoxGeometry(z.w,.1,z.d),getMat(0x141820));
+      m.position.set(z.x,-.05,z.z); m.receiveShadow=true;
+      scene.add(m); objs.push(m); return;
     }
-
-    if (z.type === 'wall') {
-      const geo = new THREE.BoxGeometry(z.w, z.h || 3, z.d);
-      const mat = new THREE.MeshLambertMaterial({ color: 0x2a2e3a, transparent: true, opacity: 0.7 });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(z.x, (z.y || 0) + (z.h || 3) / 2, z.z);
-      mesh.castShadow = true;
-      scene.add(mesh);
-      currentObjects.push(mesh);
-      return;
+    // 벽
+    if(z.type==='wall'){
+      const h=z.h||2.8;
+      const m=new THREE.Mesh(new THREE.BoxGeometry(z.w,h,z.d),getMat(0x1a1e2c,true,.6));
+      m.position.set(z.x,h/2,z.z); m.castShadow=true;
+      scene.add(m); objs.push(m); return;
     }
-
-    if (z.type === 'zone') {
-      const yBase = z.elevated ? 1.5 : 0;
-      const h = 0.3;
-      const geo = new THREE.BoxGeometry(z.w, h, z.d);
-
-      let color = z.color;
-      if (z.team === 'blue') color = 0x1a4080;
-      else if (z.team === 'red') color = 0x802020;
-      else if (z.team === 'mid') color = 0x3a2a5c;
-
-      if (z.bombsite) color = 0x8a6a10;
-
-      const mat = new THREE.MeshLambertMaterial({ color, transparent: true, opacity: 0.85 });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(z.x, yBase + h / 2, z.z);
-      mesh.receiveShadow = true;
-      mesh.userData = { zone: z, originalColor: color, mat };
-      scene.add(mesh);
-      currentObjects.push(mesh);
-
-      // Bombsite marker
-      if (z.bombsite) {
-        const markerGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.1, 16);
-        const markerMat = new THREE.MeshLambertMaterial({ color: 0xe8b84b, emissive: 0x4a3800 });
-        const marker = new THREE.Mesh(markerGeo, markerMat);
-        marker.position.set(z.x, yBase + h + 0.05, z.z);
-        scene.add(marker);
-        currentObjects.push(marker);
+    // 구역
+    if(z.type==='zone'){
+      const isBomb=z.bombsite;
+      const tc=isBomb?TC.bomb:(TC[z.team]||TC.mid);
+      const h=.28;
+      const geo=new THREE.BoxGeometry(z.w,h,z.d);
+      const mesh=new THREE.Mesh(geo,getMat(tc.f,true,.9));
+      mesh.position.set(z.x,h/2,z.z); mesh.receiveShadow=true;
+      scene.add(mesh); objs.push(mesh);
+      // 테두리
+      const edge=new THREE.LineSegments(new THREE.EdgesGeometry(geo),new THREE.LineBasicMaterial({color:tc.e,transparent:true,opacity:.65}));
+      edge.position.copy(mesh.position); scene.add(edge); objs.push(edge);
+      // 폭탄 마커
+      if(isBomb){
+        const cyl=new THREE.Mesh(new THREE.CylinderGeometry(.65,.65,.07,16),getMat(0xe8b84b));
+        cyl.position.set(z.x,h+.035,z.z); scene.add(cyl); objs.push(cyl);
       }
-
-      // Team color edge glow
-      if (z.team && z.label) {
-        const edgeColor = z.team === 'blue' ? 0x3a8fd4 : z.team === 'red' ? 0xd43a3a : z.bombsite ? 0xe8b84b : 0x8855cc;
-        const edgeGeo = new THREE.EdgesGeometry(geo);
-        const edgeMat = new THREE.LineBasicMaterial({ color: edgeColor, transparent: true, opacity: 0.5 });
-        const edges = new THREE.LineSegments(edgeGeo, edgeMat);
-        edges.position.copy(mesh.position);
-        scene.add(edges);
-        currentObjects.push(edges);
-      }
-
-      // HTML label
-      if (z.label) {
-        createLabel(z, mesh.position);
-      }
+      // 레이블
+      if(z.label) makeLabel(z.label,z.x,h+.3,z.z,tc.e);
     }
   });
 }
 
 // ============================================================
-//  HTML LABELS (CSS2D-like with manual projection)
+//  레이블
 // ============================================================
-function createLabel(zone, pos3d) {
-  const div = document.createElement('div');
-  div.className = 'zone-label';
-  div.style.cssText = `
-    position: absolute;
-    pointer-events: all;
-    cursor: pointer;
-    background: rgba(10,11,14,0.85);
-    border: 1px solid ${zone.team === 'blue' ? '#3a8fd4' : zone.team === 'red' ? '#d43a3a' : zone.bombsite ? '#e8b84b' : '#8855cc'};
-    border-radius: 5px;
-    padding: 3px 7px;
-    font-size: 0.68rem;
-    font-family: 'Noto Sans KR', sans-serif;
-    color: ${zone.team === 'blue' ? '#7ab8ee' : zone.team === 'red' ? '#ee7a7a' : zone.bombsite ? '#e8b84b' : '#bb88ff'};
-    white-space: pre-line;
-    text-align: center;
-    line-height: 1.4;
-    backdrop-filter: blur(4px);
-    transition: transform 0.1s, background 0.1s;
-    user-select: none;
-    transform: translate(-50%, -100%);
-  `;
-  div.textContent = zone.label;
-  div.dataset.x = pos3d.x;
-  div.dataset.y = pos3d.y + 0.5;
-  div.dataset.z = pos3d.z;
-
-  div.addEventListener('mouseenter', () => {
-    div.style.background = 'rgba(30,35,50,0.95)';
-    div.style.transform = 'translate(-50%, -100%) scale(1.05)';
-  });
-  div.addEventListener('mouseleave', () => {
-    div.style.background = 'rgba(10,11,14,0.85)';
-    div.style.transform = 'translate(-50%, -100%)';
-  });
-
-  document.querySelector('.canvas-wrap').appendChild(div);
-  labelDivs.push(div);
+function makeLabel(text,wx,wy,wz,ec){
+  const col='#'+ec.toString(16).padStart(6,'0');
+  const d=document.createElement('div');
+  d.style.cssText=`position:absolute;pointer-events:auto;cursor:default;
+    transform:translate(-50%,-100%);background:rgba(8,9,12,.88);
+    border:1px solid ${col};border-radius:5px;padding:3px 8px;
+    font-size:.67rem;font-family:'Noto Sans KR',sans-serif;
+    color:${col};white-space:pre-line;text-align:center;line-height:1.45;
+    backdrop-filter:blur(4px);transition:transform .1s,background .1s;user-select:none;`;
+  d.textContent=text;
+  d.dataset.wx=wx; d.dataset.wy=wy; d.dataset.wz=wz;
+  d.addEventListener('mouseenter',()=>{d.style.background='rgba(22,26,38,.96)';d.style.transform='translate(-50%,-100%) scale(1.08)';});
+  d.addEventListener('mouseleave',()=>{d.style.background='rgba(8,9,12,.88)';d.style.transform='translate(-50%,-100%)';});
+  document.querySelector('.cw').appendChild(d);
+  labels.push(d);
 }
 
-function updateLabels() {
-  const wrap = document.querySelector('.canvas-wrap');
-  const rect = wrap.getBoundingClientRect();
-  const w = rect.width, h = rect.height;
-
-  labelDivs.forEach(div => {
-    const x = parseFloat(div.dataset.x);
-    const y = parseFloat(div.dataset.y);
-    const z = parseFloat(div.dataset.z);
-    const v = new THREE.Vector3(x, y, z);
+function updateLabels(){
+  const wrap=document.querySelector('.cw');
+  const R=wrap.getBoundingClientRect();
+  const W=R.width,H=R.height;
+  labels.forEach(d=>{
+    const v=new THREE.Vector3(+d.dataset.wx,+d.dataset.wy,+d.dataset.wz);
     v.project(camera);
-    const sx = (v.x * 0.5 + 0.5) * w;
-    const sy = (-v.y * 0.5 + 0.5) * h;
-    // Hide if behind camera
-    if (v.z > 1) { div.style.display = 'none'; return; }
-    div.style.display = '';
-    div.style.left = sx + 'px';
-    div.style.top = sy + 'px';
+    if(v.z>1){d.style.display='none';return;}
+    d.style.display='';
+    d.style.left=((v.x*.5+.5)*W)+'px';
+    d.style.top=((-v.y*.5+.5)*H)+'px';
   });
 }
 
 // ============================================================
-//  TEAM FILTER
+//  팀 토글
 // ============================================================
-function setTeam(team) {
-  currentTeamFilter = team;
-  document.getElementById('btn-blue').className = 'team-btn' + (team === 'blue' ? ' active-blue' : '');
-  document.getElementById('btn-red').className = 'team-btn' + (team === 'red' ? ' active-red' : '');
-  document.getElementById('btn-both').className = 'team-btn' + (team === 'both' ? '' : '');
-  if (team === 'both') document.getElementById('btn-both').style.color = 'var(--accent)';
-  else document.getElementById('btn-both').style.color = 'var(--text-muted)';
-
-  labelDivs.forEach((div, i) => {
-    // We don't have perfect zone-div mapping so just show all
-  });
+function setT(t){
+  document.getElementById('bb').className='tb'+(t==='blue'?' ab':'');
+  document.getElementById('br').className='tb'+(t==='red'?' ar':'');
+  const ba=document.getElementById('ba');
+  ba.className='tb'; ba.style.color=t==='all'?'var(--accent)':'var(--muted)';
 }
 
 // ============================================================
-//  RESIZE
+//  리사이즈 & 루프
 // ============================================================
-function resize() {
-  const wrap = document.querySelector('.canvas-wrap');
-  const w = wrap.clientWidth, h = wrap.clientHeight;
-  renderer.setSize(w, h);
-  camera.aspect = w / h;
+function resize(){
+  const cw=document.querySelector('.cw');
+  renderer.setSize(cw.clientWidth,cw.clientHeight);
+  camera.aspect=cw.clientWidth/cw.clientHeight;
   camera.updateProjectionMatrix();
 }
-window.addEventListener('resize', resize);
-resize();
+window.addEventListener('resize',resize); resize();
+(function loop(){requestAnimationFrame(loop);renderer.render(scene,camera);updateLabels();})();
 
 // ============================================================
-//  RENDER LOOP
+//  맵 선택
 // ============================================================
-function animate() {
-  requestAnimationFrame(animate);
-  renderer.render(scene, camera);
-  updateLabels();
-}
-animate();
+let currentMap='dragonroad';
 
-// ============================================================
-//  MAP SELECTION
-// ============================================================
-let currentMap = 'duoric';
-
-document.querySelectorAll('.map-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.map-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentMap = btn.dataset.map;
+document.querySelectorAll('.mb').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.mb').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on');
+    currentMap=btn.dataset.map;
     buildMap(currentMap);
-    resetView();
+    resetView(currentMap);
   });
 });
 
-// Initial build
-buildMap('duoric');
-document.getElementById('loading').classList.add('hidden');
+buildMap('dragonroad');
+resetView('dragonroad');
+applyCamera();
+document.getElementById('ld').classList.add('h');
 </script>
 </body>
 </html>
