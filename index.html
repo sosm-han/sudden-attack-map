@@ -39,7 +39,7 @@
   .tb.ab{background:rgba(58,143,212,.22);border-color:var(--blue);color:var(--blue);font-weight:700;}
   .tb.ar{background:rgba(212,58,58,.22);border-color:var(--red);color:var(--red);font-weight:700;}
   #ld{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:50;transition:opacity .4s;}
-  #ld.h{opacity:0;pointer-events:none;}
+  #ld.h{opacity:0;pointer-events:none;display:none;}
   .sp{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
   .sidebar::-webkit-scrollbar{width:4px;}
@@ -86,8 +86,9 @@
     <div class="hb"><kbd>드래그</kbd> 회전 &nbsp;<kbd>휠</kbd> 줌 &nbsp;<kbd>우클릭</kbd> 이동 &nbsp;<kbd>R</kbd> 리셋</div>
   </div>
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" onerror="document.getElementById('ld').innerHTML='<p style=color:#e8b84b;font-family:sans-serif>Three.js 로드 실패.<br>인터넷 연결을 확인하세요.</p>';"></script>
 <script>
+if(typeof THREE==='undefined'){throw new Error('THREE not loaded');}
 // zone 단축 생성자
 const Z=(x,z,w,d,lb,tm,bs=false)=>({type:'zone',x,z,w,d,label:lb,team:tm,bombsite:bs});
 const W=(x,z,w,d,h=2.8)=>({type:'wall',x,z,w,d,h});
@@ -586,7 +587,7 @@ const MAPS={
 //  Three.js 세팅
 // ============================================================
 const cv=document.getElementById('cv');
-const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true});
+const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:false});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -596,12 +597,14 @@ scene.background=new THREE.Color(0x08090c);
 scene.fog=new THREE.Fog(0x08090c,65,140);
 
 const camera=new THREE.PerspectiveCamera(45,1,0.1,500);
-scene.add(new THREE.AmbientLight(0xffffff,0.5));
+camera.position.set(0,30,30);
+camera.lookAt(0,0,0);
+
+const ambL=new THREE.AmbientLight(0xffffff,0.5); scene.add(ambL);
 const sun=new THREE.DirectionalLight(0xffffff,0.7);
 sun.position.set(15,25,10); sun.castShadow=true; scene.add(sun);
-scene.add(Object.assign(new THREE.DirectionalLight(0x7799cc,0.2),{position:{set:()=>{}}}) );
-const fl=new THREE.DirectionalLight(0x7799cc,0.2);
-fl.position.set(-10,10,-15); scene.add(fl);
+const fill=new THREE.DirectionalLight(0x7799cc,0.25);
+fill.position.set(-10,10,-15); scene.add(fill);
 scene.add(new THREE.GridHelper(90,90,0x181c24,0x10141c));
 
 // ============================================================
@@ -654,7 +657,15 @@ function resetView(key){
 // ============================================================
 let objs=[],labels=[];
 
-function clearScene(){objs.forEach(o=>scene.remove(o));objs=[];labels.forEach(d=>d.remove());labels=[];}
+function clearScene(){
+  objs.forEach(o=>{
+    scene.remove(o);
+    if(o.geometry) o.geometry.dispose();
+  });
+  objs=[];
+  labels.forEach(d=>d.remove());
+  labels=[];
+}
 
 const matCache={};
 function getMat(color,transparent=false,opacity=1){
@@ -755,12 +766,13 @@ function setT(t){
 // ============================================================
 function resize(){
   const cw=document.querySelector('.cw');
-  renderer.setSize(cw.clientWidth,cw.clientHeight);
-  camera.aspect=cw.clientWidth/cw.clientHeight;
+  const w=Math.max(cw.clientWidth,1);
+  const h=Math.max(cw.clientHeight,1);
+  renderer.setSize(w,h);
+  camera.aspect=w/h;
   camera.updateProjectionMatrix();
 }
-window.addEventListener('resize',resize); resize();
-(function loop(){requestAnimationFrame(loop);renderer.render(scene,camera);updateLabels();})();
+window.addEventListener('resize',resize);
 
 // ============================================================
 //  맵 선택
@@ -777,10 +789,14 @@ document.querySelectorAll('.mb').forEach(btn=>{
   });
 });
 
+// 초기화: resize → buildMap → camera → 로딩 해제 → 루프 시작
+resize();
 buildMap('dragonroad');
 resetView('dragonroad');
 applyCamera();
 document.getElementById('ld').classList.add('h');
+
+(function loop(){requestAnimationFrame(loop);renderer.render(scene,camera);updateLabels();})();
 </script>
 </body>
 </html>
